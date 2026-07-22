@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>大聪明金融 · 宏观多维度量化看板</title>
+  <meta name="description" content="面向交易员与宏观研究员的多维度量化金融看板，覆盖政治、货币、产业、供应链、地缘、能源、自贸区、虚拟货币八大维度。" />
+  <style>
+    :root {
+      /* ===== Design Tokens (深空蓝科技风) ===== */
+      --bg-900: #07111f;
+      --bg-800: #0a1628;
+      --bg-700: #0d2137;
+      --bg-600: #102a40;
+      --panel: rgba(13, 33, 55, 0.62);
+      --panel-solid: #0d2137;
+      --cyan: #00d4ff;
+      --cyan-dim: rgba(0, 212, 255, 0.55);
+      --blue: #3b82f6;
+      --text-100: #eaf4ff;
+      --text-200: #c5d8ec;
+      --text-300: #8ea7c0;
+      --text-400: #5d7894;
+      --border: rgba(0, 212, 255, 0.16);
+      --border-soft: rgba(142, 167, 192, 0.18);
+      --glow: rgba(0, 212, 255, 0.35);
+      --danger: #ff5c7c;
+      --ok: #36e0a0;
+      --radius: 14px;
+      --radius-sm: 10px;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+      --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+      --maxw: 1200px;
+      --font: "Inter", "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg-900);
+      color: var(--text-200);
+      line-height: 1.6;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 科技网格背景 */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0, 212, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.04) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    ul { list-style: none; }
+
+    .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+    /* ===== 通用按钮 ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 22px;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease), background 0.25s var(--ease), border-color 0.25s var(--ease);
+      position: relative;
+      overflow: hidden;
+      background: transparent;
+      color: var(--text-100);
+      font-family: inherit;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      color: #04121f;
+      box-shadow: 0 8px 24px var(--glow);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 34px var(--glow);
+    }
+    .btn-ghost {
+      border-color: var(--border);
+      color: var(--text-100);
+      background: rgba(0, 212, 255, 0.05);
+    }
+    .btn-ghost:hover {
+      border-color: var(--cyan);
+      background: rgba(0, 212, 255, 0.12);
+      transform: translateY(-2px);
+    }
+    .btn svg { width: 18px; height: 18px; }
+
+    /* ripple */
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.45);
+      transform: scale(0);
+      animation: ripple 0.6s var(--ease);
+      pointer-events: none;
+    }
+    @keyframes ripple { to { transform: scale(4); opacity: 0; } }
+
+    /* ===== 顶部导航 ===== */
+    header.nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(14px);
+      background: rgba(7, 17, 31, 0.72);
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text-100); font-size: 17px; letter-spacing: 0.5px; }
+    .logo-mark {
+      width: 32px; height: 32px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      display: grid; place-items: center;
+      box-shadow: 0 0 18px var(--glow);
+    }
+    .logo-mark svg { width: 18px; height: 18px; color: #04121f; }
+    .nav-links { display: flex; align-items: center; gap: 28px; }
+    .nav-links a { color: var(--text-300); font-size: 14.5px; font-weight: 500; transition: color 0.2s var(--ease); position: relative; }
+    .nav-links a::after {
+      content: ""; position: absolute; left: 0; bottom: -6px; height: 2px; width: 0;
+      background: var(--cyan); transition: width 0.25s var(--ease);
+    }
+    .nav-links a:hover { color: var(--text-100); }
+    .nav-links a:hover::after { width: 100%; }
+    .nav-cta { display: flex; align-items: center; gap: 12px; }
+    .hamburger { display: none; background: none; border: none; cursor: pointer; padding: 6px; color: var(--text-100); }
+    .hamburger svg { width: 26px; height: 26px; }
+
+    /* ===== Hero ===== */
+    .hero { position: relative; padding: 96px 0 80px; overflow: hidden; }
+    .hero-glow {
+      position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
+      width: 720px; height: 720px; border-radius: 50%;
+      background: radial-gradient(circle, var(--glow), transparent 60%);
+      filter: blur(40px); opacity: 0.55; z-index: 0; pointer-events: none;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 6px 14px; border-radius: 999px;
+      border: 1px solid var(--border); background: rgba(0, 212, 255, 0.06);
+      color: var(--cyan); font-size: 13px; font-weight: 600; margin-bottom: 22px;
+    }
+    .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 10px var(--cyan); animation: pulse 1.8s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+    .hero h1 {
+      font-size: clamp(32px, 5.2vw, 56px);
+      line-height: 1.12; color: var(--text-100); font-weight: 800; letter-spacing: -0.5px;
+      max-width: 880px;
+    }
+    .hero h1 .accent {
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p.sub {
+      margin-top: 22px; font-size: clamp(15px, 2vw, 18px); color: var(--text-300);
+      max-width: 620px;
+    }
+    .hero-actions { margin-top: 36px; display: flex; gap: 14px; flex-wrap: wrap; }
+    .hero-meta { margin-top: 40px; display: flex; gap: 30px; flex-wrap: wrap; color: var(--text-400); font-size: 13.5px; }
+    .hero-meta span { display: inline-flex; align-items: center; gap: 7px; }
+    .hero-meta svg { width: 16px; height: 16px; color: var(--cyan); }
+
+    /* ===== 数据指标条 ===== */
+    .stats { padding: 56px 0; border-top: 1px solid var(--border-soft); border-bottom: 1px solid var(--border-soft); }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+    .stat { text-align: center; }
+    .stat .num {
+      font-size: clamp(30px, 4vw, 44px); font-weight: 800; color: var(--text-100);
+      font-variant-numeric: tabular-nums;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat .label { margin-top: 8px; color: var(--text-300); font-size: 14px; }
+
+    /* ===== 区块通用 ===== */
+    section.block { padding: 84px 0; position: relative; }
+    .section-head { text-align: center; max-width: 680px; margin: 0 auto 52px; }
+    .section-head .kicker { color: var(--cyan); font-size: 13.5px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+    .section-head h2 { margin-top: 12px; font-size: clamp(26px, 3.4vw, 38px); color: var(--text-100); font-weight: 800; letter-spacing: -0.3px; }
+    .section-head p { margin-top: 14px; color: var(--text-300); font-size: 16px; }
+
+    /* ===== 功能卡片 ===== */
+    .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+    .card {
+      background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius);
+      padding: 28px; backdrop-filter: blur(10px); position: relative; overflow: hidden;
+      transition: transform 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    }
+    .card::before {
+      content: ""; position: absolute; inset: 0; border-radius: var(--radius);
+      padding: 1px; background: linear-gradient(135deg, var(--cyan-dim), transparent 40%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor; mask-composite: exclude;
+      opacity: 0; transition: opacity 0.3s var(--ease); pointer-events: none;
+    }
+    .card:hover { transform: translateY(-6px); border-color: var(--border); box-shadow: var(--shadow); }
+    .card:hover::before { opacity: 1; }
+    /* ===== 功能卡片（匹配参考图） ===== */
+    .card {
+      background: rgba(14, 24, 38, 0.85);
+      border: 1px solid rgba(60, 80, 110, 0.2);
+      border-radius: 16px;
+      padding: 30px 28px;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.32s var(--ease), border-color 0.32s var(--ease), box-shadow 0.32s var(--ease);
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.15) 0%, transparent 45%, transparent 100%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.35s var(--ease);
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(0, 212, 255, 0.22);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 212, 255, 0.06);
+    }
+    .card:hover::before { opacity: 1; }
+
+    .card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(145deg, #0f2538, #162d42);
+      border: 1px solid rgba(0, 212, 255, 0.14);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.25);
+      margin-bottom: 20px;
+      transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    }
+    .card:hover .card-icon {
+      transform: scale(1.05);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 20px rgba(0, 180, 220, 0.15);
+    }
+    .card-icon svg {
+      width: 26px;
+      height: 26px;
+      color: var(--cyan);
+      filter: drop-shadow(0 0 4px rgba(0, 212, 255, 0.3));
+    }
+    .card h3 {
+      color: #eef6ff;
+      font-size: 19px;
+      font-weight: 750;
+      letter-spacing: -0.2px;
+      margin-bottom: 11px;
+      line-height: 1.3;
+    }
+    .card p {
+      color: #9ab0ca;
+      font-size: 14.5px;
+      line-height: 1.7;
+    }
+
+    /* ===== 维度切换展示 ===== */
+    .showcase { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 40px; align-items: center; }
+    .tabs { display: flex; flex-direction: column; gap: 10px; }
+    .tab {
+      display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border-soft); background: var(--panel); cursor: pointer; text-align: left;
+      color: var(--text-300); font-family: inherit; font-size: 15px; font-weight: 600; width: 100%;
+      transition: all 0.25s var(--ease);
+    }
+    .tab .tab-ico { width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; background: rgba(0,212,255,0.08); border: 1px solid var(--border); flex-shrink: 0; }
+    .tab .tab-ico svg { width: 20px; height: 20px; color: var(--cyan); }
+    .tab .tab-meta { margin-left: auto; font-size: 13px; color: var(--text-400); font-weight: 500; }
+    .tab:hover { border-color: var(--border); color: var(--text-100); }
+    .tab.active { border-color: var(--cyan); background: rgba(0, 212, 255, 0.1); color: var(--text-100); box-shadow: 0 0 0 1px var(--cyan-dim); }
+    .tab.active .tab-meta { color: var(--cyan); }
+
+    .showcase-panel {
+      background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius);
+      padding: 32px; min-height: 320px; backdrop-filter: blur(10px); position: relative; overflow: hidden;
+    }
+    .showcase-panel .panel-kicker { color: var(--cyan); font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; }
+    .showcase-panel h3 { color: var(--text-100); font-size: 24px; font-weight: 800; margin: 10px 0 14px; }
+    .showcase-panel p { color: var(--text-300); font-size: 15px; }
+    .metric-row { margin-top: 22px; display: flex; flex-direction: column; gap: 14px; }
+    .metric { }
+    .metric .metric-top { display: flex; justify-content: space-between; font-size: 13.5px; margin-bottom: 6px; }
+    .metric .metric-top .m-name { color: var(--text-200); }
+    .metric .metric-top .m-val { color: var(--cyan); font-weight: 700; font-variant-numeric: tabular-nums; }
+    .bar { height: 8px; border-radius: 999px; background: rgba(142,167,192,0.16); overflow: hidden; }
+    .bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--cyan), var(--blue)); width: 0; transition: width 0.9s var(--ease); }
+    .fade-swap { animation: fadeUp 0.45s var(--ease); }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ===== 表单区 ===== */
+    .cta-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    .cta-copy h2 { font-size: clamp(26px, 3.4vw, 38px); color: var(--text-100); font-weight: 800; }
+    .cta-copy p { margin-top: 16px; color: var(--text-300); font-size: 16px; }
+    .cta-list { margin-top: 24px; display: flex; flex-direction: column; gap: 14px; }
+    .cta-list li { display: flex; align-items: flex-start; gap: 12px; color: var(--text-200); font-size: 15px; }
+    .cta-list svg { width: 20px; height: 20px; color: var(--ok); flex-shrink: 0; margin-top: 2px; }
+
+    .form-card {
+      background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius);
+      padding: 32px; backdrop-filter: blur(12px); box-shadow: var(--shadow);
+    }
+    .form-card h3 { color: var(--text-100); font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .form-card .form-sub { color: var(--text-400); font-size: 13.5px; margin-bottom: 22px; }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 13.5px; color: var(--text-200); font-weight: 600; margin-bottom: 7px; }
+    .field label .req { color: var(--danger); margin-left: 3px; }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 12px 14px; border-radius: var(--radius-sm);
+      background: rgba(7, 17, 31, 0.6); border: 1px solid var(--border-soft); color: var(--text-100);
+      font-family: inherit; font-size: 15px; transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    }
+    .field textarea { resize: vertical; min-height: 84px; }
+    .field input::placeholder, .field textarea::placeholder { color: var(--text-400); }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none; border-color: var(--cyan); box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.15);
+    }
+    .field.invalid input, .field.invalid select, .field.invalid textarea {
+      border-color: var(--danger); box-shadow: 0 0 0 3px rgba(255, 92, 124, 0.14);
+    }
+    .field .err { display: none; color: var(--danger); font-size: 12.5px; margin-top: 6px; }
+    .field.invalid .err { display: block; }
+    .form-card .btn-primary { width: 100%; justify-content: center; margin-top: 6px; }
+    .form-note { margin-top: 14px; font-size: 12.5px; color: var(--text-400); text-align: center; }
+
+    /* toast */
+    .toast {
+      position: fixed; left: 50%; bottom: 32px; transform: translate(-50%, 120%);
+      background: var(--panel-solid); border: 1px solid var(--ok); color: var(--text-100);
+      padding: 14px 22px; border-radius: var(--radius-sm); box-shadow: var(--shadow); z-index: 100;
+      display: flex; align-items: center; gap: 10px; font-size: 14.5px; font-weight: 600;
+      transition: transform 0.4s var(--ease); max-width: 90vw;
+    }
+    .toast.show { transform: translate(-50%, 0); }
+    .toast svg { width: 20px; height: 20px; color: var(--ok); }
+
+    /* ===== 页脚 ===== */
+    footer { border-top: 1px solid var(--border-soft); padding: 40px 0; color: var(--text-400); font-size: 13.5px; }
+    .foot-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+
+    /* ===== 滚动入场动画 ===== */
+    /* 兜底：默认可见。仅当 JS 正常运行时才会加 .pre 隐藏，避免脚本异常导致整页空白 */
+    .reveal { opacity: 1; transform: none; }
+    .reveal.pre { opacity: 0; transform: translateY(28px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
+    .reveal.in-view { opacity: 1; transform: translateY(0); }
+    .reveal.d1 { transition-delay: 0.08s; }
+    .reveal.d2 { transition-delay: 0.16s; }
+    .reveal.d3 { transition-delay: 0.24s; }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 980px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .showcase { grid-template-columns: 1fr; gap: 28px; }
+      .cta-wrap { grid-template-columns: 1fr; gap: 32px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 30px 20px; }
+    }
+    @media (max-width: 720px) {
+      .nav-links { display: none; }
+      .nav-cta .btn-ghost { display: none; }
+      .hamburger { display: block; }
+      .mobile-menu { display: none; flex-direction: column; gap: 4px; padding: 12px 24px 20px; border-bottom: 1px solid var(--border-soft); background: rgba(7,17,31,0.96); }
+      .mobile-menu.open { display: flex; }
+      .mobile-menu a { color: var(--text-200); padding: 12px 0; font-size: 15px; border-bottom: 1px solid var(--border-soft); }
+      .hero { padding: 64px 0 56px; }
+      .features-grid { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .section.block, section.block { padding: 60px 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .reveal.pre { transition: none; opacity: 1; transform: none; }
+      .badge .dot { animation: none; }
+    }
+
+    /* ===== 地图详情视图 Overlay ===== */
+    .map-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 10, 20, 0.88);
+      backdrop-filter: blur(16px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s var(--ease);
+    }
+    .map-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .map-overlay-inner {
+      width: 96%; max-width: 1440px; height: 90vh;
+      max-height: 900px;
+      border-radius: var(--radius);
+      background: var(--bg-800);
+      border: 1px solid var(--border);
+      box-shadow: 0 40px 100px rgba(0,0,0,0.65), 0 0 60px rgba(0,212,255,0.06);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr;
+      transform: scale(0.95);
+      transition: transform 0.45s var(--ease);
+    }
+    .map-overlay.open .map-overlay-inner { transform: scale(1); }
+
+    /* --- 左侧地图区 --- */
+    .map-area {
+      position: relative;
+      background: linear-gradient(160deg, #07121c 0%, #0a1a2e 50%, #081524 100%);
+      overflow: hidden;
+    }
+
+    /* 地图标题栏 */
+    .map-header {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 8;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px;
+      background: linear-gradient(180deg, rgba(7,17,31,0.92) 0%, transparent 100%);
+      pointer-events: none;
+    }
+    .map-header > * { pointer-events: auto; }
+    .map-title-group { display: flex; align-items: center; gap: 12px; }
+    .map-title-icon {
+      width: 36px; height: 36px; border-radius: 9px;
+      background: linear-gradient(145deg, #0f2538, #162d42);
+      border: 1px solid rgba(0,212,255,0.18);
+      display: grid; place-items: center;
+      box-shadow: 0 0 14px rgba(0,212,255,0.12);
+    }
+    .map-title-icon svg { width: 20px; height: 20px; color: var(--cyan); }
+    .map-title-text h4 { font-size: 15px; font-weight: 700; color: var(--text-100); line-height: 1.2; }
+    .map-title-text span { font-size: 12px; color: var(--text-400); margin-top: 2px; display: block; }
+
+    .map-close-btn {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border-soft);
+      color: var(--text-300); cursor: pointer;
+      display: grid; place-items: center; transition: all 0.25s var(--ease);
+    }
+    .map-close-btn:hover { background: rgba(255,92,124,0.12); border-color: var(--danger); color: var(--danger); }
+    .map-close-btn svg { width: 18px; height: 18px; }
+
+    /* 3D 地球画布 */
+    .globe-wrap { position: absolute; inset: 0; z-index: 1; }
+    #globeCanvas { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+    #globeCanvas:active { cursor: grabbing; }
+    .globe-labels { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+    .globe-label {
+      position: absolute; transform: translate(-50%, -150%);
+      font-size: 11.5px; font-weight: 600; color: var(--text-100);
+      background: rgba(13,33,55,0.82); border: 1px solid var(--border);
+      padding: 2px 8px; border-radius: 6px; white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+      transition: opacity .2s var(--ease), background .2s var(--ease), color .2s var(--ease);
+      will-change: transform, left, top;
+    }
+    .globe-label.hidden { opacity: 0; }
+    .globe-label.active { color: #06121f; background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,212,255,0.5); }
+    .globe-hint {
+      position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
+      font-size: 11px; color: var(--text-400); letter-spacing: .5px; z-index: 6;
+      background: rgba(13,33,55,0.6); padding: 5px 12px; border-radius: 999px;
+      border: 1px solid var(--border-soft); pointer-events: none;
+    }
+    .globe-fallback {
+      position: absolute; inset: 0; display: grid; place-items: center;
+      color: var(--text-300); font-size: 13px; text-align: center; padding: 24px;
+    }
+
+    /* ===== 3D / 2D 地图切换控件 ===== */
+    .map-view-toggle {
+      display: flex; align-items: center; gap: 0;
+      background: rgba(7,17,31,0.75); backdrop-filter: blur(8px);
+      border: 1px solid var(--border-soft);
+      border-radius: 999px; padding: 3px;
+      z-index: 9;
+    }
+    .map-view-toggle button {
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 999px;
+      border: none; background: transparent;
+      color: var(--text-400); font-size: 12.5px; font-weight: 600;
+      font-family: inherit; cursor: pointer;
+      transition: all 0.28s var(--ease);
+      white-space: nowrap;
+    }
+    .map-view-toggle button svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .map-view-toggle button:hover { color: var(--text-200); }
+    .map-view-toggle button.active {
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      color: #04121f; box-shadow: 0 0 14px rgba(0,212,255,0.3);
+    }
+    .map-view-toggle button.active:hover { color: #04121f; }
+
+    /* 2D 地图 iframe 容器 */
+    .map-2d-wrap {
+      position: absolute; inset: 0; z-index: 2;
+      opacity: 0; pointer-events: none;
+      transform: scale(1.02);
+      transition: opacity 0.42s var(--ease), transform 0.42s var(--ease);
+    }
+    .map-2d-wrap.visible {
+      opacity: 1; pointer-events: auto; transform: scale(1);
+    }
+    .map-2d-wrap iframe {
+      width: 100%; height: 100%;
+      border: none; display: block;
+      background: #07111f;
+    }
+
+    /* 切换时 3D 层的过渡 */
+    .globe-wrap {
+      transition: opacity 0.42s var(--ease), transform 0.42s var(--ease);
+    }
+    .globe-wrap.dimmed {
+      opacity: 0; pointer-events: none; transform: scale(0.98);
+    }
+
+    /* 节点 */
+    .map-node {
+      position: absolute;
+      cursor: pointer;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+    }
+    .node-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, rgba(0,212,255,0.85), rgba(59,130,246,0.7));
+      border: 2px solid rgba(255,255,255,0.35);
+      box-shadow: 0 0 12px rgba(0,212,255,0.45), 0 0 28px rgba(0,212,255,0.15);
+      transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+      display: block;
+    }
+    .map-node:hover .node-dot,
+    .map-node.active .node-dot {
+      transform: scale(1.4);
+      box-shadow: 0 0 20px rgba(0,212,255,0.7), 0 0 44px rgba(0,212,255,0.22);
+    }
+    .map-node.active .node-dot { background: radial-gradient(circle at 30% 30%, #00d4ff, #3b82f6); }
+
+    /* 节点波纹 */
+    .node-ring {
+      position: absolute; top: 50%; left: 50%;
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1.5px solid rgba(0,212,255,0.3);
+      transform: translate(-50%,-50%) scale(0.6);
+      opacity: 0.6;
+      animation: nodePing 2s ease-out infinite;
+      pointer-events: none;
+    }
+    .map-node.active .node-ring { animation-duration: 1.4s; }
+    @keyframes nodePing {
+      0% { transform: translate(-50%,-50%) scale(0.6); opacity: 0.7; }
+      80%, 100% { transform: translate(-50%,-50%) scale(2.4); opacity: 0; }
+    }
+
+    /* 节点标签 */
+    .node-label {
+      position: absolute; top: 26px; left: 50%; transform: translateX(-50%);
+      white-space: nowrap;
+      font-size: 11.5px; font-weight: 600; color: var(--text-100);
+      background: rgba(13,33,55,0.88);
+      border: 1px solid var(--border);
+      padding: 3px 9px; border-radius: 6px;
+      opacity: 0; transition: opacity 0.25s var(--ease);
+      pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+    }
+    .map-node:hover .node-label,
+    .map-node.active .node-label { opacity: 1; }
+
+    /* 图例 */
+    .map-legend {
+      position: absolute; bottom: 16px; left: 16px; z-index: 8;
+      display: flex; gap: 14px; flex-wrap: wrap;
+      background: rgba(13,33,55,0.78); backdrop-filter: blur(8px);
+      border: 1px solid var(--border-soft); border-radius: 10px;
+      padding: 10px 14px;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--text-300); }
+    .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+    /* 当前选中节点信息浮窗 */
+    .node-tooltip {
+      position: absolute; bottom: 60px; left: 16px; z-index: 10;
+      min-width: 220px; max-width: 300px;
+      background: rgba(13,33,55,0.94); backdrop-filter: blur(12px);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; opacity: 0; transform: translateY(8px);
+      transition: all 0.3s var(--ease); pointer-events: none;
+      box-shadow: 0 12px 36px rgba(0,0,0,0.45);
+    }
+    .node-tooltip.visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
+    .nt-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .nt-name { font-size: 15px; font-weight: 700; color: var(--text-100); }
+    .nt-type-chip {
+      font-size: 11px; padding: 2px 8px; border-radius: 999px;
+      font-weight: 600; letter-spacing: 0.3px;
+    }
+    .nt-score-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .nt-score-bar { flex: 1; height: 6px; border-radius: 999px; background: rgba(142,167,192,0.14); overflow: hidden; }
+    .nt-score-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--cyan), var(--blue)); transition: width 0.6s var(--ease); }
+    .nt-score-val { font-size: 13px; font-weight: 700; color: var(--cyan); min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
+    .nt-desc { font-size: 12.5px; color: var(--text-300); line-height: 1.55; margin-top: 8px; }
+
+    /* ===== 卡片可点击提示 ===== */
+    .card.clickable { cursor: pointer; }
+    .card.clickable::after {
+      content: ''; position: absolute; bottom: 14px; right: 14px;
+      width: 24px; height: 24px; border-radius: 6px;
+      background: rgba(0,212,255,0.08); border: 1px solid var(--border);
+      background-image:
+        linear-gradient(135deg, transparent 45%, var(--cyan) 50%, transparent 55%),
+        linear-gradient(45deg, transparent 45%, var(--cyan) 50%, transparent 55%);
+      background-size: 8px 8px, 5px 5px;
+      background-position: center;
+      background-repeat: no-repeat;
+      display: grid; place-items: center; opacity: 0; transition: opacity 0.25s var(--ease);
+    }
+    .card.clickable:hover::after { opacity: 1; }
+    .card.clickable svg.view-arrow { width: 13px; height: 13px; color: var(--cyan); display: none; }
+
+    /* 响应式：地图详情 */
+    @media (max-width: 1024px) {
+      .map-overlay-inner { height: 94vh; max-height: 820px; }
+    }
+    @media (max-width: 720px) {
+      .map-overlay-inner { height: 96vh; max-height: none; border-radius: var(--radius-sm); }
+      .map-area { min-height: 52vh; }
+      .map-legend { bottom: 8px; left: 8px; padding: 8px 10px; gap: 10px; }
+      .node-tooltip { bottom: 50px; left: 8px; right: 8px; min-width: unset; max-width: none; }
+      .map-view-toggle button { padding: 5px 10px; font-size: 11.5px; }
+      .map-view-toggle button svg { width: 13px; height: 13px; }
+      .map-header { padding: 10px 14px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 顶部导航 -->
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a href="#top" class="logo">
+        <span class="logo-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/></svg>
+        </span>
+        大聪明金融
+      </a>
+      <nav class="nav-links">
+        <a href="#features">核心能力</a>
+        <a href="#dimensions">量化维度</a>
+        <a href="#cta">预约接入</a>
+      </nav>
+      <div class="nav-cta">
+        <a href="#features" class="btn btn-ghost">查看能力</a>
+        <a href="#cta" class="btn btn-primary">
+          预约演示
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <button class="hamburger" id="hamburger" aria-label="打开菜单">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="#features">核心能力</a>
+      <a href="#dimensions">量化维度</a>
+      <a href="#cta">预约接入</a>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero" id="top">
+    <div class="hero-glow"></div>
+    <div class="wrap">
+      <span class="badge reveal"><span class="dot"></span>宏观 · 产业 · 地缘 多维量化引擎</span>
+      <h1 class="reveal d1">把<span class="accent">宏观混沌</span>变成<span class="accent">可量化的决策信号</span></h1>
+      <p class="sub reveal d2">大聪明金融看板覆盖政治、货币、产业、供应链、地缘、能源、自贸区、虚拟货币八大维度，为交易员与宏观研究员提供秒级更新的量化评分与逻辑推演，让每一笔配置都有数据支撑。</p>
+      <div class="hero-actions reveal d3">
+        <a href="#cta" class="btn btn-primary" data-ripple>
+          预约演示
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href="#features" class="btn btn-ghost" data-ripple>了解核心能力</a>
+      </div>
+      <div class="hero-meta reveal d3">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>秒级实时数据流</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/></svg>八大维度统一评分</span>
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>API 可动态注入</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 数据指标 -->
+  <section class="stats">
+    <div class="wrap stats-grid">
+      <div class="stat reveal"><div class="num" data-count="8">0</div><div class="label">量化维度</div></div>
+      <div class="stat reveal d1"><div class="num" data-count="32">0</div><div class="label">预留数据源接口</div></div>
+      <div class="stat reveal d2"><div class="num" data-count="99" data-suffix="%">0</div><div class="label">实时可用性</div></div>
+      <div class="stat reveal d3"><div class="num" data-count="1" data-suffix="s">0</div><div class="label">数据刷新延迟</div></div>
+    </div>
+  </section>
+
+  <!-- 核心能力 -->
+  <section class="block" id="features">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="kicker">Core Capabilities</div>
+        <h2>一块屏幕，看清宏观全貌</h2>
+        <p>从地缘地图到量化雷达，从逻辑推演到资讯流，所有决策要素在一块大屏上协同运转。</p>
+      </div>
+      <div class="features-grid">
+        <article class="card reveal">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l5-3 4 4 4-4 5 3v12l-5 3-4-4-4 4-5-3z"/><path d="M8 3v14m8-11v14"/></svg></div>
+          <h3>可视化宏观地图</h3>
+          <p>地缘冲突、军事部署、自贸区、供应链航线一图呈现，点击标记点即弹出区域实时情报。</p>
+        </article>
+        <article class="card reveal d1">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M12 6a6 6 0 100 12 6 6 0 000-12z"/><circle cx="12" cy="12" r="2"/></svg></div>
+          <h3>多维量化雷达</h3>
+          <p>政治、货币、产业、供应链等八维 0-1 评分，雷达图实时联动，一眼对比不同资产强弱。</p>
+        </article>
+        <article class="card reveal d2">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h6m0 0l-2-2m2 2l-2 2M14 18h6m0 0l-2-2m2 2l-2 2"/><circle cx="10" cy="6" r="1.5"/><circle cx="14" cy="18" r="1.5"/></svg></div>
+          <h3>核心逻辑推演</h3>
+          <p>阶段化流程卡片（阶段 1/2/3）拆解当前标的研究逻辑，把"为什么买"讲清楚。</p>
+        </article>
+        <article class="card reveal">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12v16H4zM16 8h4v12h-4zM7 8h6M7 12h6M7 16h4"/></svg></div>
+          <h3>动态事件信息流</h3>
+          <p>底部滚动财经资讯、大宗商品价格、机构评级与相关标的池，关键信号不漏接。</p>
+        </article>
+        <article class="card reveal d1">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3 6.5 7 .7-5.2 4.8 1.5 7L12 17.5 5.7 21l1.5-7L2 9.2l7-.7z"/></svg></div>
+          <h3>相关标的池</h3>
+          <p>按量化评分排序的关联标的，评分环直观呈现强弱，辅助快速构建观察清单。</p>
+        </article>
+        <article class="card reveal d2">
+          <div class="card-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007 0l3-3a5 5 0 00-7-7l-1 1"/><path d="M14 11a5 5 0 00-7 0l-3 3a5 5 0 007 7l1-1"/></svg></div>
+          <h3>开放 API 接入</h3>
+          <p>各维度均预留接口位与 Mock 数据源，真实数据通过外部 API 动态注入，组件零改动。</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 量化维度切换 -->
+  <section class="block" id="dimensions">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <div class="kicker">Quant Dimensions</div>
+        <h2>八个维度，一套统一评分</h2>
+        <p>点击左侧维度，查看当前样本资产的量化拆解。所有分数由 0 到 1 归一，便于横向比较。</p>
+      </div>
+      <div class="showcase reveal">
+        <div class="tabs" id="tabs">
+          <button class="tab active" data-key="politics"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6"/></svg></span>政治政策<span class="tab-meta">0.62</span></button>
+          <button class="tab" data-key="monetary"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 10h6M9 14h6"/></svg></span>货币政策<span class="tab-meta">0.48</span></button>
+          <button class="tab" data-key="industry"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l6 4V9l6 4V5l6 4v12z"/></svg></span>科技产业<span class="tab-meta">0.74</span></button>
+          <button class="tab" data-key="supply"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg></span>供应链物流<span class="tab-meta">0.55</span></button>
+          <button class="tab" data-key="geo"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/></svg></span>地缘军事<span class="tab-meta">0.39</span></button>
+          <button class="tab" data-key="energy"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span>能源大宗<span class="tab-meta">0.66</span></button>
+          <button class="tab" data-key="trade"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V9m6 12V5m6 16v-8"/></svg></span>自贸区<span class="tab-meta">0.58</span></button>
+          <button class="tab" data-key="crypto"><span class="tab-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 8.5h4a2 2 0 010 4h-4m0 0h4.5a2 2 0 010 4H9.5m0-8v12M11 6v2m0 12v-2"/></svg></span>虚拟货币<span class="tab-meta">0.71</span></button>
+        </div>
+        <div class="showcase-panel" id="panel">
+          <div class="panel-kicker" id="pKicker">POLITICS</div>
+          <h3 id="pTitle">政治政策维度</h3>
+          <p id="pDesc">政策不确定性与监管导向，直接映射到风险资产的配置权重。当前样本地区政策连续性强、刺激预期明确。</p>
+          <div class="metric-row" id="pMetrics"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 预约表单 -->
+  <section class="block" id="cta">
+    <div class="wrap cta-wrap">
+      <div class="cta-copy reveal">
+        <h2>把看板接入你的研究流程</h2>
+        <p>留下信息，我们会为你开通演示环境与 API 接入文档，最快一个工作日内联系。</p>
+        <ul class="cta-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>专属演示环境，含八维量化样本数据</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>完整 API 对接文档与 Mock 结构</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>支持私有数据源与 WebSocket 实时推送</li>
+        </ul>
+      </div>
+      <div class="form-card reveal d1">
+        <h3>预约产品演示</h3>
+        <p class="form-sub">带 <span style="color:var(--danger)">*</span> 为必填项，提交后我们会尽快联系你。</p>
+        <form id="leadForm" novalidate>
+          <div class="field" data-field="name">
+            <label>姓名 <span class="req">*</span></label>
+            <input type="text" name="name" placeholder="请输入您的称呼" autocomplete="name" />
+            <div class="err">请填写姓名（至少 2 个字符）</div>
+          </div>
+          <div class="field" data-field="phone">
+            <label>手机号 <span class="req">*</span></label>
+            <input type="tel" name="phone" placeholder="11 位中国大陆手机号" autocomplete="tel" inputmode="numeric" />
+            <div class="err">请输入有效的 11 位手机号</div>
+          </div>
+          <div class="field" data-field="email">
+            <label>邮箱 <span class="req">*</span></label>
+            <input type="email" name="email" placeholder="name@example.com" autocomplete="email" />
+            <div class="err">请输入有效的邮箱地址</div>
+          </div>
+          <div class="field" data-field="role">
+            <label>您的角色</label>
+            <select name="role">
+              <option value="">请选择（选填）</option>
+              <option value="trader">交易员</option>
+              <option value="researcher">宏观研究员</option>
+              <option value="pm">投资经理 / 基金经理</option>
+              <option value="other">其他</option>
+            </select>
+            <div class="err">请选择角色</div>
+          </div>
+          <div class="field" data-field="note">
+            <label>需求备注</label>
+            <textarea name="note" placeholder="想接入哪些维度的数据源？（选填）"></textarea>
+            <div class="err">备注过长</div>
+          </div>
+          <button type="submit" class="btn btn-primary" data-ripple>提交预约</button>
+          <p class="form-note">提交即表示同意我们就演示事宜与您联系。</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- 页脚 -->
+  <footer>
+    <div class="wrap foot-inner">
+      <div class="logo" style="font-size:15px;">
+        <span class="logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-3 3 3 5-6"/></svg></span>
+        大聪明金融
+      </div>
+      <div>© 2026 大聪明金融 · 宏观多维度量化看板 · 数据仅供参考，不构成投资建议</div>
+    </div>
+  </footer>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+    <span id="toastMsg">预约提交成功，我们会尽快联系您！</span>
+  </div>
+
+  <!-- ===== 地图详情视图 Overlay ===== -->
+  <div class="map-overlay" id="mapOverlay">
+    <div class="map-overlay-inner">
+      <!-- 左侧：可交互地图 -->
+      <section class="map-area" id="mapArea">
+        <header class="map-header">
+          <div class="map-title-group">
+            <span class="map-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l5-3 4 4 4-4 5 3v12l-5 3-4-4-4 4-5-3z"/><path d="M8 3v14m8-11v14"/></svg></span>
+            <div class="map-title-text">
+              <h4>宏观地缘地图</h4>
+              <span>点击节点查看区域实时资讯 · 数据每 30s 刷新</span>
+            </div>
+          </div>
+          <button class="map-close-btn" id="mapCloseBtn" aria-label="关闭详情视图">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+          <!-- 3D / 2D 视图切换 -->
+          <div class="map-view-toggle" id="mapViewToggle">
+            <button class="active" data-view="3d" aria-pressed="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><ellipse cx="12" cy="12" rx="10" ry="4"/><path d="M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg>
+              3D 地球
+            </button>
+            <button data-view="2d" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6l5-3 4 4 4-4 5 3v12l-5 3-4-4-4 4-5-3z"/><path d="M8 3v14m8-11v14"/></svg>
+              2D 地图
+            </button>
+          </div>
+        </header>
+
+        <!-- 3D 地球画布（Three.js） -->
+        <div class="globe-wrap" id="globeWrap">
+          <canvas id="globeCanvas"></canvas>
+          <div class="globe-labels" id="globeLabels"></div>
+          <div class="globe-hint">拖拽旋转 · 滚轮缩放 · 点击节点查看资讯</div>
+          <div class="globe-fallback" id="globeFallback" hidden>3D 地球初始化失败，请刷新页面重试</div>
+        </div>
+
+        <!-- 2D ECharts 平面地图（iframe 嵌入） -->
+        <div class="map-2d-wrap" id="map2dWrap">
+          <iframe id="map2dIframe" src="world-map.html" title="全球资金流动 2D 地图" loading="lazy"></iframe>
+        </div>
+
+        <!-- 图例 -->
+        <div class="map-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#00d4ff"></span>政策中心</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#3b82f6"></span>金融枢纽</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ffaa32"></span>能源港口</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#ff5c7c"></span>地缘热点</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#36e0a0"></span>自贸区</div>
+        </div>
+
+        <!-- 节点详情浮窗 -->
+        <div class="node-tooltip" id="nodeTooltip">
+          <div class="nt-head">
+            <span class="nt-name" id="ntName">--</span>
+            <span class="nt-type-chip" id="ntTypeChip">--</span>
+          </div>
+          <p class="nt-desc" id="ntDesc">--</p>
+          <div class="nt-score-row">
+            <div class="nt-score-bar"><div class="nt-score-fill" id="ntScoreFill"></div></div>
+            <span class="nt-score-val" id="ntScoreVal">--</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="vendor/three.min.js"></script>
+  <script src="vendor/data/world.js"></script>
+  <script>
+    // ===== 移动端菜单 =====
+    const hamburger = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    hamburger.addEventListener('click', () => mobileMenu.classList.toggle('open'));
+    mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => mobileMenu.classList.remove('open')));
+
+    // ===== 按钮 ripple 反馈 =====
+    document.querySelectorAll('[data-ripple]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const r = document.createElement('span');
+        r.className = 'ripple';
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        r.style.width = r.style.height = size + 'px';
+        r.style.left = (e.clientX - rect.left - size / 2) + 'px';
+        r.style.top = (e.clientY - rect.top - size / 2) + 'px';
+        btn.appendChild(r);
+        setTimeout(() => r.remove(), 600);
+      });
+    });
+
+    // ===== 滚动入场动画 =====
+    // JS 正常运行时才隐藏元素做入场动画；若脚本异常，元素默认可见，不会整页空白
+    document.querySelectorAll('.reveal').forEach(el => el.classList.add('pre'));
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(en => {
+        if (en.isIntersecting) {
+          en.target.classList.remove('pre');
+          en.target.classList.add('in-view');
+          io.unobserve(en.target);
+        }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+    // ===== 数字计数动画 =====
+    const counters = document.querySelectorAll('[data-count]');
+    const cio = new IntersectionObserver((entries) => {
+      entries.forEach(en => {
+        if (en.isIntersecting) {
+          const el = en.target;
+          const target = parseFloat(el.getAttribute('data-count'));
+          const suffix = el.getAttribute('data-suffix') || '';
+          const dur = 1200; const start = performance.now();
+          const tick = (now) => {
+            const p = Math.min((now - start) / dur, 1);
+            const eased = 1 - Math.pow(1 - p, 3);
+            el.textContent = Math.round(target * eased) + suffix;
+            if (p < 1) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+          cio.unobserve(el);
+        }
+      });
+    }, { threshold: 0.5 });
+    counters.forEach(c => cio.observe(c));
+
+    // ===== 维度切换 =====
+    const DIM = {
+      politics: { kicker: 'POLITICS', title: '政治政策维度', desc: '政策不确定性与监管导向，直接映射到风险资产的配置权重。当前样本地区政策连续性强、刺激预期明确。', metrics: [['政策连续性', 0.82], ['监管友好度', 0.58], ['财政空间', 0.64], ['选举风险', 0.44]] },
+      monetary: { kicker: 'MONETARY', title: '货币政策维度', desc: '利率路径与流动性环境决定估值锚。当前处于宽松中后期，边际收紧信号尚弱。', metrics: [['宽松力度', 0.61], ['流动性', 0.55], ['汇率压力', 0.38], ['通胀约束', 0.47]] },
+      industry: { kicker: 'INDUSTRY', title: '科技产业维度', desc: '国产替代与 AI 资本开支构成最强主线，半导体与算力景气度高。', metrics: [['景气上行', 0.81], ['国产替代', 0.77], ['资本开支', 0.73], ['估值分位', 0.65]] },
+      supply: { kicker: 'SUPPLY CHAIN', title: '供应链物流维度', desc: '航运运价与港口吞吐反映实体活跃度，当前处于弱修复区间。', metrics: [['运价指数', 0.52], ['港口吞吐', 0.58], ['库存周期', 0.49], ['断供风险', 0.61]] },
+      geo: { kicker: 'GEOPOLITICS', title: '地缘军事维度', desc: '区域冲突与军事部署抬升避险溢价，是当前组合的主要下行风险来源。', metrics: [['冲突强度', 0.46], ['军事部署', 0.41], ['制裁扩散', 0.34], ['避险溢价', 0.39]] },
+      energy: { kicker: 'ENERGY', title: '能源大宗维度', desc: '原油与工业金属价格受供需与地缘双重驱动，波动率偏高。', metrics: [['供给约束', 0.69], ['需求韧性', 0.62], ['库存低位', 0.71], ['波动率', 0.63]] },
+      trade: { kicker: 'TRADE ZONE', title: '自贸区维度', desc: '自贸区政策红利释放，跨境贸易与离岸业务便利性提升。', metrics: [['政策红利', 0.64], ['通关效率', 0.59], ['离岸便利', 0.57], ['外资流入', 0.52]] },
+      crypto: { kicker: 'CRYPTO', title: '虚拟货币维度', desc: '流动性外溢与机构配置推动风险偏好，与科技股相关性走高。', metrics: [['流动性外溢', 0.74], ['机构配置', 0.69], ['监管清晰', 0.66], ['链上活跃', 0.72]] },
+    };
+    const tabs = document.getElementById('tabs');
+    const panel = document.getElementById('panel');
+    const pKicker = document.getElementById('pKicker');
+    const pTitle = document.getElementById('pTitle');
+    const pDesc = document.getElementById('pDesc');
+    const pMetrics = document.getElementById('pMetrics');
+    function renderDim(key) {
+      const d = DIM[key];
+      panel.classList.remove('fade-swap'); void panel.offsetWidth; panel.classList.add('fade-swap');
+      pKicker.textContent = d.kicker;
+      pTitle.textContent = d.title;
+      pDesc.textContent = d.desc;
+      pMetrics.innerHTML = d.metrics.map(([n, v]) => `
+        <div class="metric">
+          <div class="metric-top"><span class="m-name">${n}</span><span class="m-val">${v.toFixed(2)}</span></div>
+          <div class="bar"><span data-w="${(v * 100).toFixed(0)}"></span></div>
+        </div>`).join('');
+      requestAnimationFrame(() => {
+        pMetrics.querySelectorAll('.bar > span').forEach(s => { s.style.width = s.getAttribute('data-w') + '%'; });
+      });
+    }
+    tabs.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderDim(tab.getAttribute('data-key'));
+      });
+    });
+    renderDim('politics');
+
+    // ===== 表单校验 =====
+    const form = document.getElementById('leadForm');
+    const validators = {
+      name: (v) => v.trim().length >= 2,
+      phone: (v) => /^1[3-9]\d{9}$/.test(v.trim()),
+      email: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
+      role: () => true,
+      note: (v) => v.trim().length <= 200,
+    };
+    function validateField(name, value) {
+      const field = form.querySelector(`[data-field="${name}"]`);
+      const ok = validators[name](value);
+      field.classList.toggle('invalid', !ok);
+      return ok;
+    }
+    // 实时校验（失焦 + 输入）
+    ['name', 'phone', 'email', 'note'].forEach(name => {
+      const input = form.elements[name];
+      input.addEventListener('blur', () => validateField(name, input.value));
+      input.addEventListener('input', () => {
+        if (form.querySelector(`[data-field="${name}"]`).classList.contains('invalid')) validateField(name, input.value);
+      });
+    });
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fields = ['name', 'phone', 'email', 'note'];
+      let allOk = true; let firstBad = null;
+      fields.forEach(name => {
+        const ok = validateField(name, form.elements[name].value);
+        if (!ok && !firstBad) firstBad = name;
+        allOk = allOk && ok;
+      });
+      if (!allOk) {
+        const fb = form.querySelector(`[data-field="${firstBad}"]`);
+        fb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        form.elements[firstBad].focus();
+        return;
+      }
+      // 成功反馈
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = '预约提交成功，我们会尽快与您联系！';
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3600);
+      form.reset();
+      form.querySelectorAll('.field').forEach(f => f.classList.remove('invalid'));
+    });
+
+    // ===== 导航锚点平滑滚动（含 sticky 偏移） =====
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      a.addEventListener('click', (e) => {
+        const id = a.getAttribute('href');
+        if (id === '#' || id === '#top') return;
+        const target = document.querySelector(id);
+        if (target) {
+          e.preventDefault();
+          const y = target.getBoundingClientRect().top + window.scrollY - 64;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      });
+    });
+
+    // ===== 地图详情视图：数据定义 =====
+    const MAP_NODES_DATA = [
+      { id:'beijing',   name:'北京',    region:'华北',  lat:39.9, lng:116.4, type:'policy',   color:'#00d4ff',
+        rank:15, score:0.72,
+        desc:'首都政策中枢，金融监管决策核心区。近期宏观刺激政策密集出台，市场预期升温。',
+        news:[
+          { tags:['hot','policy'], title:'央行宣布新一轮降准 50BP，释放长期流动性约 1.2 万亿', source:'中国人民银行', time:'09:42' },
+          { tags:['live','update'], title:'发改委：加快"两重"项目审批节奏，基建投资增速有望回升至 8%', source:'发改委官网', time:'09:35' },
+          { tags:['policy'], title:'北交所深化改革方案落地，中小企业融资渠道进一步拓宽', source:'财新网', time:'09:18' },
+          { tags:['hot'], title:'大模型备案提速，首批 12 家企业通过生成式 AI 服务备案', source:'36氪', time:'09:02' },
+          { tags:['update'], title:'北京自贸区跨境数据流动试点范围扩大至 6 个片区', source:'北京日报', time:'08:47' },
+          { tags:['alert'], title:'京津冀大气污染防治升级，钢铁水泥行业限产力度加码', source:'界面新闻', time:'08:30' },
+          { tags:['policy','update'], title:'国务院常务会议研究促进民营经济发展壮大的具体举措', source:'新华社', time:'08:15' },
+          { tags:['live'], title:'【直播连线】首席宏观分析师解读最新政策组合拳影响路径', source:'大聪明金融', time:'正在直播' },
+        ]},
+      { id:'shanghai',  name:'上海',    region:'华东',  lat:31.2, lng:121.5, type:'finance',  color:'#3b82f6',
+        rank:8, score:0.81,
+        desc:'国际金融中心与航运枢纽，科创板主阵地。外资流入持续，离岸人民币业务活跃。',
+        news:[
+          { tags:['live','hot'], title:'上证指数早盘突破 3400 点，北向资金单日净买入超 120 亿', source:'Wind 资讯', time:'10:05' },
+          { tags:['update'], title:'上海自贸区临港新片区跨境贸易便利化措施再升级，通关时效压缩 30%', source:'第一财经', time:'09:55' },
+          { tags:['policy'], title:'科创板受理企业数量突破 600 家，硬科技属性进一步强化', source:'上交所', time:'09:38' },
+          { tags:['hot'], title:'陆股通标的扩容在即，预计新增 50 只 A 股纳入互联互通', source:'证券时报', time:'09:22' },
+          { tags:['update'], title:'洋山港集装箱吞吐量创历史新高，全球供应链枢纽地位稳固', source:'港口协会', time:'09:10' },
+          { tags:['live'], title:'【直播】半导体产业链实地调研：国产替代进度超预期', source:'大聪明金融', time:'正在直播' },
+          { tags:['policy'], title:'上海发布人工智能产业扶持政策，算力补贴最高达 2000 万元', source:'上海市经信委', time:'08:45' },
+          { tags:['hot','alert'], title:'离岸人民币汇率波动加大，央行出手稳定市场预期', source:'外汇交易中心', time:'08:20' },
+        ]},
+      { id:'guangzhou', name:'广州', region:'华南',  lat:23.1, lng:113.3, type:'trade',   color:'#36e0a0',
+        rank:33, score:0.65,
+        desc:'粤港澳大湾区核心引擎，广交会永久举办地。跨境电商与数字贸易增长强劲。',
+        news:[
+          { tags:['hot','trade'], title:'广交会第 137 届开幕，首日到会采购商同比增长 18%', source:'央视财经', time:'09:50' },
+          { tags:['update'], title:'大湾区跨境理财通 2.0 上线，可投资产品池扩容 3 倍', source:'南方日报', time:'09:33' },
+          { tags:['policy'], title:'前海深港现代服务业合作区新政：支持港资金融机构独资设立', source:'深圳特区报', time:'09:15' },
+          { tags:['trade'], title:'广州港南沙港区四期自动化码头正式投运，年处理能力提升 200 万 TEU', source:'广州日报', time:'08:58' },
+          { tags:['update'], title:'跨境电商综试区出口额同比增 32%，东南亚成最大增量市场', source:'海关总署', time:'08:40' },
+          { tags:['hot'], title:'横琴粤澳深度合作区"双 15%"税收优惠政策延长至 2029 年', source:'澳门日报', time:'08:25' },
+          { tags:['policy','trade'], title:'CEPA 升级协议签署，服务贸易负面清单缩减至 27 项', source:'商务部', time:'08:08' },
+          { tags:['live'], title:'【连线】粤港澳三地专家共话湾区一体化发展新机遇', source:'大聪明金融', time:'正在直播' },
+        ]},
+      { id:'chengdu',   name:'成都',   region:'西南',  lat:30.6, lng:104.1, type:'industry', color:'#b4a0ff',
+        rank:45, score:0.58,
+        desc:'西部经济中心与电子信息产业基地。"东数西算"核心节点，清洁能源优势突出。',
+        news:[
+          { tags:['industry','hot'], title:'成都高新区获批国家自主创新示范区，集成电路专项基金规模达 100 亿', source:'四川日报', time:'09:45' },
+          { tags:['update'], title:'天府数据中心集群建设加速，总算力突破 100 EFLOPS', source:'成都发布', time:'09:28' },
+          { tags:['industry'], title:'比亚迪成都基地三期投产，新能源汽车产能提升至 60 万辆/年', source:'21世纪经济报道', time:'09:12' },
+          { tags:['policy'], title:'成渝地区双城经济圈规划纲要中期评估报告发布', source:'国家发改委', time:'08:55' },
+          { tags:['industry','update'], title:'川渝共建西部科学城，首批 15 个重大科技项目签约落地', source:'科技日报', time:'08:35' },
+          { tags:['hot'], title:'光伏产业链向西迁移加速，四川多晶硅产能占全国 25%', source:'能源杂志', time:'08:20' },
+          { tags:['update'], title:'中欧班列（成都）累计开行突破 25000 列，回程比例达 54%', source:'成都海关', time:'08:05' },
+          { tags:['live'], title:'【调研连线】西部产业转移中的投资机会梳理', source:'大聪明金融', time:'正在直播' },
+        ]},
+      { id:'xian',      name:'西安',   region:'西北',  lat:34.3, lng:108.9, type:'industry', color:'#b4a0ff',
+        rank:50, score:0.53,
+        desc:'丝路起点与航天军工重镇。航空航天、新材料产业集群效应显著。',
+        news:[
+          { tags:['industry'], title:'西安航天基地商业航天发射场一期工程竣工，年内具备发射能力', source:'陕西卫视', time:'09:40' },
+          { tags:['hot'], title:'西咸新区氢能产业园引入 5 家龙头企业，全产业链布局初具雏形', source:'华商报', time:'09:20' },
+          { tags:['update'], title:'中欧班列（西安）去程满载率连续 6 个月保持 98% 以上', source:'西安晚报', time:'09:00' },
+          { tags:['policy'], title:'陕西省"十四五"制造业高质量发展规划中期调整方案公示', source:'省工信厅', time:'08:42' },
+          { tags:['industry'], title:'隆基绿能 TOPCon 电池转换效率刷新世界纪录至 26.81%', source:'公司公告', time:'08:22' },
+          { tags:['hot'], title:'三星西安存储芯片二期扩产完成，月产能增至 25 万片晶圆', source:'半导体行业观察', time:'08:05' },
+          { tags:['update'], title:'丝绸之路国际博览会签约金额突破 3000 亿元，创历届新高', source:'新华网', time:'07:50' },
+          { tags:['live'], title:'【连线】军工产业链景气度跟踪与投资逻辑', source:'大聪明金融', time:'正在直播' },
+        ]},
+      { id:'singapore', name:'新加坡', region:'东南亚',x:70, y:52, type:'finance', color:'#3b82f6',
+        rank:3, score:0.77,
+        desc:'亚太金融中心与全球最大转口港之一。东盟门户，RCEP 关键节点。',
+        news:[
+          { tags:['hot','finance'], title:'新加坡金管局维持汇率政策区间不变，暗示年内不加息', source:'MAS 公告', time:'10:00' },
+          { tags:['update'], title:'新加坡港集装箱吞吐量 Q2 同比增 7%，蝉联全球最繁忙转运港', source:'PSA 国际', time:'09:44' },
+          { tags:['policy'], title:'RCEP 对印尼全面生效，区域内 90% 以上货物实现零关税', source:'商务部', time:'09:26' },
+          { tags:['finance','hot'], title:'星展银行上调亚洲新兴市场 GDP 增速预测至 5.1%', source:'DBS 研报', time:'09:08' },
+          { tags:['update'], title:'淡马锡 2026 财年投资组合净值创新高，科技板块配置占比升至 28%', source:'淡马锡年报', time:'08:48' },
+          { tags:['live'], title:'【连线】东南亚供应链重构下的投资机会分析', source:'大聪明金融', time:'正在直播' },
+          { tags:['policy','finance'], title:'中新（重庆）战略性互联互通示范项目二期合作启动', source:'联合早报', time:'08:28' },
+          { tags:['hot'], title:'全球避险资金涌入新加坡，私人银行 AUM 单季增长 12%', source:'Bloomberg', time:'08:10' },
+        ]},
+      { id:'tokyo',     name:'东京',    region:'东亚',  lat:35.7, lng:139.7, type:'finance', color:'#3b82f6',
+        rank:11, score:0.69,
+        desc:'全球第三大经济体与最大债权国。日央行货币政策转向是当前焦点变量。',
+        news:[
+          { tags:['alert','hot'], title:'日本央行议息会议纪要：多数委员支持渐进加息路径', source:'BOJ', time:'09:56' },
+          { tags:['finance'], title:'日元兑美元跌破 158 关键位，干预风险升温', source:'路透社', time:'09:38' },
+          { tags:['update'], title:'日经 225 指数收涨 1.2%，半导体板块领涨', source:'Nikkei', time:'09:20' },
+          { tags:['policy'], title:'岸田政府推出新一轮经济刺激计划，规模达 25 万亿日元', source:'读卖新闻', time:'09:02' },
+          { tags:['finance','hot'], title:'巴菲特增持五大商社股份至 9% 以上，押注日本价值重估', source:'伯克希尔文件', time:'08:42' },
+          { tags:['update'], title:'东京证券交易所改革 T+1 结算制度于本月正式生效', source:'JPX', time:'08:22' },
+          { tags:['alert'], title:'日本核污水排海引发周边国家外交抗议，地缘紧张度上升', source:'NHK', time:'08:00' },
+          { tags:['live'], title:'【连线】日央行政策转向对全球流动性的外溢影响', source:'大聪明金融', time:'正在直播' },
+        ]},
+      { id:'mumbai',    name:'孟买',    region:'南亚',  lat:19.1, lng:72.9, type:'industry', color:'#b4a0ff',
+        rank:31, score:0.49,
+        desc:'印度金融之都与 IT 外包中心。"印度制造"推进中，但基础设施仍是瓶颈。',
+        news:[
+          { tags:['hot','industry'], title:'印度 IT 服务巨头 Q2 订单增速放缓至 5%，AI 替代担忧升温', source:'Economic Times', time:'09:48' },
+          { tags:['policy'], title:'莫迪政府"生产挂钩激励计划"扩展至电子元件领域', source:'Business Standard', time:'09:30' },
+          { tags:['update'], title:'孟买 Sensex 指数盘中首次突破 85000 点关口', source:'BSE', time:'09:12' },
+          { tags:['industry'], title:'塔塔集团宣布在古吉拉特邦建设印度最大半导体制造基地', source:'Times of India', time:'08:54' },
+          { tags:['hot'], title:'印度黄金进口量创 10 年新高，居民避险需求旺盛', source:'WGC 印度', time:'08:35' },
+          { tags:['alert'], title:'印巴边境冲突升级，双方在克什米尔地区发生小规模交火', source:'Reuters', time:'08:15' },
+          { tags:['update'], title:'卢比兑美元创历史新低，印度央行入市干预汇市', source:'RBI', time:'07:55' },
+          { tags:['live'], title:'【连线】南亚地缘格局变化与区域投资风险评估', source:'大聪明金融', time:'正在直播' },
+        ]},
+      { id:'dubai',     name:'迪拜',    region:'中东',  lat:25.2, lng:55.3, type:'energy',  color:'#ffaa32',
+        rank:16, score:0.61,
+        desc:'中东能源贸易枢纽与金融中心。石油定价基准 + 数字资产试验田。',
+        news:[
+          { tags:['energy','hot'], title:'布伦特原油期货突破 88 美元/桶，中东局势溢价约 5 美元', source:'ICE', time:'09:52' },
+          { tags:['update'], title:'阿联酋与沙特讨论将部分石油贸易结算转为非美元货币', source:'Arab News', time:'09:34' },
+          { tags:['energy'], title:'OPEC+ 月度会议决定延长减产协议至 Q4，减产幅度维持不变', source:'OPEC 秘书处', time:'09:16' },
+          { tags:['finance'], title:'迪拜国际金融中心（DIFC）加密资产监管框架 3.0 发布', source:'DFSA', time:'08:56' },
+          { tags:['energy','hot'], title:'沙特阿美 Q2 净利润同比下降 15%，但仍高于分析师预期', source:'Aramco 公告', time:'08:36' },
+          { tags:['alert'], title:'红海航运安全形势恶化，多家船司绕行好望角致运费飙升 200%', source:'Lloyd\'s List', time:'08:14' },
+          { tags:['update'], title:'卡塔尔 LNG 扩产计划提前完成，2027 年产能将翻倍', source:'QatarEnergy', time:'07:52' },
+          { tags:['live'], title:'【连线】中东地缘博弈下的能源价格与航运链冲击', source:'大聪明金融', time:'正在直播' },
+        ]},
+      { id:'sydney',    name:'悉尼',    region:'澳洲',  lat:-33.9, lng:151.2, type:'resource',color:'#ffaa32',
+        rank:17, score:0.67,
+        desc:'大洋洲资源出口枢纽。铁矿石、锂矿、天然气全球定价影响力强。',
+        news:[
+          { tags:['resource','hot'], title:'铁矿石价格反弹至 125 USD/t，中国钢厂补库需求拉动', source:'Dalian Commodity', time:'09:50' },
+          { tags:['update'], title:'澳大利亚锂精矿 FOB 价格企稳，碳酸锂期货同步止跌', source:'SMM', time:'09:32' },
+          { tags:['resource'], title:'澳洲 LNG 出口合同谈判启动，中日韩买家联合议价', source:'Financial Review', time:'09:14' },
+          { tags:['policy'], title:'澳大利亚关键矿产战略更新，稀土加工纳入国家安全审查', source:'ABC News', time:'08:54' },
+          { tags:['resource','hot'], title:'必和必拓下调 2026 财年铜产量指引，智利矿山罢工影响延续', source:'BHP 公告', time:'08:34' },
+          { tags:['update'], title:'澳联储暂停加息周期，官方利率维持在 4.35%', source:'RBA', time:'08:16' },
+          { tags:['alert'], title:'中澳关系回暖信号：商务部长访华推动龙虾等农产品复关', source:'The Australian', time:'07:58' },
+          { tags:['live'], title:'【连线】大宗商品超级周期是否重启？资源国视角的深度解析', source:'大聪明金融', time:'正在直播' },
+        ]},
+      { id:'newyork', name:'纽约', region:'北美', lat:40.71, lng:-74.01, type:'finance', color:'#3b82f6', rank:1,
+        score:0.98,
+        desc:'全球最大金融中心，华尔街所在地。美股、美债、美元定价核心，全球资本流动的终极枢纽。',
+        news:[
+          { tags:['hot','finance'], title:'标普500指数再创历史新高，科技七巨头市值突破 18 万亿美元', source:'NYSE', time:'10:08' },
+          { tags:['update'], title:'美联储褐皮书：多数地区经济活动温和扩张，通胀回落至目标区间', source:'Federal Reserve', time:'09:50' },
+          { tags:['policy','finance'], title:'SEC 批准现货以太坊 ETF 上市交易，加密资产合规化迈出关键一步', source:'SEC', time:'09:32' },
+          { tags:['finance','hot'], title:'美债收益率曲线结束倒挂，2s10s 重回正值释放经济软着陆信号', source:'Bloomberg', time:'09:14' },
+          { tags:['live'], title:'【直播】华尔街交易台：非农数据前瞻与大类资产配置策略', source:'大聪明金融', time:'正在直播' },
+          { tags:['update'], title:'纽约证交所日均成交额突破 600 亿美元，衍生品活跃度创年内新高', source:'NYSE', time:'08:46' },
+          { tags:['alert'], title:'商业地产风险隐现，华尔街多家银行上调写字楼贷款拨备', source:'WSJ', time:'08:28' },
+          { tags:['finance'], title:'美元指数徘徊 104 关口，市场押注年内降息两次', source:'Reuters', time:'08:10' },
+        ]},
+      { id:'london', name:'伦敦', region:'欧洲', lat:51.51, lng:-0.13, type:'finance', color:'#3b82f6', rank:2,
+        score:0.95,
+        desc:'欧洲最大金融中心与全球外汇交易枢纽。伦交所、劳合社、国际金融服务业高度集聚。',
+        news:[
+          { tags:['hot','finance'], title:'富时100指数收涨 0.8%，矿业与金融板块领涨', source:'LSE', time:'10:02' },
+          { tags:['policy'], title:'英国央行维持基准利率 4.5% 不变，暗示通胀粘性仍存', source:'Bank of England', time:'09:44' },
+          { tags:['update'], title:'伦敦外汇日均成交量为 3.8 万亿美元，稳居全球第一', source:'BIS', time:'09:26' },
+          { tags:['finance'], title:'伦交所集团宣布拆分意大利交易所业务，聚焦核心资本市场', source:'LSEG', time:'09:08' },
+          { tags:['alert'], title:'英国财政预算案引发 gilt 市场波动，十年期国债收益率跳升', source:'FT', time:'08:50' },
+          { tags:['live'], title:'【连线】脱欧后伦敦金融城竞争力重塑：机遇与挑战', source:'大聪明金融', time:'正在直播' },
+          { tags:['update'], title:'英国 FCA 发布加密资产监管最终规则，稳定币纳入支付框架', source:'FCA', time:'08:30' },
+          { tags:['finance','hot'], title:'伦敦成为全球绿色债券最大发行地，年内募资超 800 亿英镑', source:'气候债券倡议', time:'08:12' },
+        ]},
+      { id:'hongkong', name:'香港', region:'东亚', lat:22.32, lng:114.17, type:'finance', color:'#3b82f6', rank:4,
+        score:0.82,
+        desc:'亚洲国际金融市场枢纽，全球离岸人民币业务枢纽。连通内地与全球资本的关键桥梁。',
+        news:[
+          { tags:['hot','finance'], title:'恒生指数收复 19000 点，南向资金单日净买入破百亿港元', source:'HKEX', time:'10:06' },
+          { tags:['update'], title:'港交所拟推出人民币计价港股交易，双币柜台扩容至 40 只', source:'HKEX', time:'09:48' },
+          { tags:['policy'], title:'金管局维持贴现窗基本利率 5.25%，与美联储政策同步', source:'HKMA', time:'09:30' },
+          { tags:['finance','hot'], title:'香港资产管理规模突破 4 万亿港元，家族办公室数量翻倍', source:'SFC', time:'09:12' },
+          { tags:['live'], title:'【直播】港股通机制优化后的北水新动向解读', source:'大聪明金融', time:'正在直播' },
+          { tags:['update'], title:'离岸人民币隔夜 HIBOR 回落，跨境外汇交易活跃度回升', source:'财资市场公会', time:'08:52' },
+          { tags:['alert'], title:'港股卖空占比升至 18%，监管关注市场沽空压力', source:'信报', time:'08:34' },
+          { tags:['policy','finance'], title:'债券通"南向通"投资额度上调，加速大湾区资金融通', source:'PBOC', time:'08:16' },
+        ]},
+      { id:'sanfrancisco', name:'旧金山', region:'北美', lat:37.77, lng:-122.42, type:'finance', color:'#3b82f6', rank:5,
+        score:0.80,
+        desc:'全球风投与科技金融中心，硅谷核心。纳斯达克上市科技巨头与创投资本的聚集地。',
+        news:[
+          { tags:['hot','finance'], title:'纳斯达克综合指数创盘中新高，AI 概念股延续强势', source:'NASDAQ', time:'10:04' },
+          { tags:['update'], title:'硅谷一季度风险投资额环比回升 22%，AI 基建赛道吸金最多', source:'PitchBook', time:'09:46' },
+          { tags:['finance'], title:'多家科技巨头密集发债融资，投资级公司债供给创纪录', source:'Bloomberg', time:'09:28' },
+          { tags:['policy'], title:'加州立法推进 AI 安全法案，科技巨头游说寻求折中', source:'SF Chronicle', time:'09:10' },
+          { tags:['live'], title:'【连线】生成式 AI 浪潮下的科技股估值重构', source:'大聪明金融', time:'正在直播' },
+          { tags:['update'], title:'旧金山湾区 IPO 市场回暖，三家独角兽递交招股书', source:'Reuters', time:'08:48' },
+          { tags:['alert'], title:'商业地产空置率攀升至 28%，区域银行敞口引关注', source:'WSJ', time:'08:30' },
+          { tags:['finance','hot'], title:'私募信贷规模突破 1.7 万亿美元，成科技并购重要资金来源', source:'麦肯锡', time:'08:12' },
+        ]},
+      { id:'chicago', name:'芝加哥', region:'北美', lat:41.88, lng:-87.63, type:'finance', color:'#3b82f6', rank:6,
+        score:0.74,
+        desc:'全球衍生品与大宗商品定价中心。CME、CBOT 主导全球期货与期权交易。',
+        news:[
+          { tags:['hot','finance'], title:'CME 标普500期货未平仓合约创历史新高，机构对冲需求旺盛', source:'CME Group', time:'10:00' },
+          { tags:['update'], title:'芝加哥商品交易所农产品期货成交量同比增 14%', source:'CME', time:'09:42' },
+          { tags:['finance'], title:'芝商所推出离岸人民币期权新产品，完善外汇衍生品矩阵', source:'CME', time:'09:24' },
+          { tags:['policy'], title:'美国商品期货交易委员会 CFTC 强化高频交易监管规则', source:'CFTC', time:'09:06' },
+          { tags:['alert'], title:'玉米大豆产区天气炒作升温，农产品波动率指数跳升', source:'DTN', time:'08:48' },
+          { tags:['live'], title:'【连线】大宗商品超级周期与通胀传导路径', source:'大聪明金融', time:'正在直播' },
+          { tags:['update'], title:'芝加哥联储全国活动指数转正，中西部制造业企稳', source:'Chicago Fed', time:'08:30' },
+          { tags:['finance','hot'], title:'利率期权市场押注美联储年内两次降息，波动率曲线陡峭化', source:'Bloomberg', time:'08:12' },
+        ]},
+      { id:'shenzhen', name:'深圳', region:'华南', lat:22.54, lng:114.06, type:'finance', color:'#3b82f6', rank:9,
+        score:0.76,
+        desc:'中国科技创新与创业板高地。深交所所在地，硬科技企业与创投生态活跃。',
+        news:[
+          { tags:['hot','finance'], title:'创业板指涨 1.5%，新能源与半导体板块共振上行', source:'深交所', time:'10:03' },
+          { tags:['update'], title:'深圳前海跨境金融试点扩容，QFLP 额度审批提速', source:'深圳特区报', time:'09:45' },
+          { tags:['policy'], title:'创业板注册制改革深化，再融资简易程序扩围', source:'证券时报', time:'09:27' },
+          { tags:['finance','hot'], title:'深圳私募股权在管规模突破 1.5 万亿元，居全国前列', source:'中基协', time:'09:09' },
+          { tags:['live'], title:'【直播】硬科技投资赛道梳理：从 VC 视角看产业拐点', source:'大聪明金融', time:'正在直播' },
+          { tags:['update'], title:'河套深港科技创新合作区跨境数据流动试点落地', source:'深圳卫视', time:'08:50' },
+          { tags:['industry'], title:'华为、比亚迪等龙头带动，深圳工业增加值增速领跑一线', source:'南方日报', time:'08:32' },
+          { tags:['alert'], title:'人民币汇率波动下，外向型企业套期保值需求激增', source:'21世纪经济报道', time:'08:14' },
+        ]},
+      { id:'frankfurt', name:'法兰克福', region:'欧洲', lat:50.11, lng:8.68, type:'finance', color:'#3b82f6', rank:10,
+        score:0.72,
+        desc:'欧元区金融中心与欧洲央行所在地。欧元定价与欧元区银行体系核心枢纽。',
+        news:[
+          { tags:['hot','finance'], title:'欧洲央行维持三大利率不变，拉加德重申数据依赖路径', source:'ECB', time:'10:01' },
+          { tags:['update'], title:'欧元兑美元站上 1.09，市场定价年内降息一次', source:'Reuters', time:'09:43' },
+          { tags:['policy'], title:'德国联邦议院通过 2026 财年预算，国防与基建支出加码', source:'Handelsblatt', time:'09:25' },
+          { tags:['finance'], title:'法兰克福证交所 Xetra 交易时长延长，覆盖亚太时段', source:'Deutsche Börse', time:'09:07' },
+          { tags:['alert'], title:'德国商业银行与裕信并购案引发监管审查，欧元区银行业整合生变', source:'FT', time:'08:49' },
+          { tags:['live'], title:'【连线】欧元区通胀回落路径与欧债收益率走势', source:'大聪明金融', time:'正在直播' },
+          { tags:['update'], title:'欧元清算业务加速向法兰克福集聚，脱欧红利持续释放', source:'Bloomberg', time:'08:31' },
+          { tags:['finance','hot'], title:'欧元区绿色债券发行占比升至 45%，法兰克福主导定价', source:'气候债券倡议', time:'08:13' },
+        ]},
+      { id:'zurich', name:'苏黎世', region:'欧洲', lat:47.37, lng:8.54, type:'finance', color:'#3b82f6', rank:12,
+        score:0.70,
+        desc:'全球财富管理与私人银行中心。瑞士金融监管稳健，离岸资产托管规模居首。',
+        news:[
+          { tags:['hot','finance'], title:'瑞银集团财富管理 AUM 突破 5.6 万亿美元，整合瑞信渐近尾声', source:'UBS', time:'09:58' },
+          { tags:['update'], title:'瑞士法郎避险需求升温，美元兑瑞郎跌至 0.88', source:'SNB', time:'09:40' },
+          { tags:['policy'], title:'瑞士央行 SNB 意外降息 25BP 至 1.0%，遏制瑞郎升值', source:'SNB', time:'09:22' },
+          { tags:['finance'], title:'苏黎世保险集团上调巨灾准备金，应对气候相关赔付', source:'Zurich Insurance', time:'09:04' },
+          { tags:['alert'], title:'全球最低税率落地，瑞士各州竞相调整企业税以留住控股总部', source:'NZZ', time:'08:46' },
+          { tags:['live'], title:'【连线】全球家族办公室资产配置的新范式', source:'大聪明金融', time:'正在直播' },
+          { tags:['update'], title:'瑞士私人银行加密资产托管规模同比翻倍', source:'Finews', time:'08:28' },
+          { tags:['finance','hot'], title:'黄金 ETF 资金回流，苏黎世贵金属交易枢纽地位巩固', source:'World Gold Council', time:'08:10' },
+        ]},
+      { id:'paris', name:'巴黎', region:'欧洲', lat:48.86, lng:2.35, type:'finance', color:'#3b82f6', rank:13,
+        score:0.68,
+        desc:'欧元区重要金融与资本市场中心。泛欧交易所总部，资产管理与保险业高度发达。',
+        news:[
+          { tags:['hot','finance'], title:'CAC40 指数收涨 0.6%，奢侈品与银行板块反弹', source:'Euronext', time:'09:57' },
+          { tags:['update'], title:'泛欧交易所 EURONEXT 成交量创季度新高，跨境上市提速', source:'Euronext', time:'09:39' },
+          { tags:['policy'], title:'法国预算案削减赤字至 GDP 的 5.4%，引发议会拉锯', source:'Les Échos', time:'09:21' },
+          { tags:['finance'], title:'法国安盛资管规模突破 1 万亿欧元，欧洲最大保险资管的再平衡', source:'AXA', time:'09:03' },
+          { tags:['alert'], title:'法国政治不确定性推升 OAT 收益率，与德债利差走阔', source:'Reuters', time:'08:45' },
+          { tags:['live'], title:'【连线】欧洲资本市场联盟进程与跨境资本流动', source:'大聪明金融', time:'正在直播' },
+          { tags:['update'], title:'巴黎力图吸引伦敦外溢金融岗位，已新增 4000 个岗位', source:'Bloomberg', time:'08:27' },
+          { tags:['finance','hot'], title:'法国绿色与可持续基金净流入连续 6 季度为正', source:'Morningstar', time:'08:09' },
+        ]},
+      { id:'toronto', name:'多伦多', region:'北美', lat:43.65, lng:-79.38, type:'finance', color:'#3b82f6', rank:18,
+        score:0.66,
+        desc:'北美重要金融中心与全球矿业融资枢纽。多伦多证交所 TSX 主导资源类 IPO。',
+        news:[
+          { tags:['hot','finance'], title:'多伦多证交所 S&P/TSX 综合指数创历史新高，金融与能源板块领涨', source:'TMX', time:'09:55' },
+          { tags:['update'], title:'加拿大央行维持利率 3.0%，暗示通胀回归目标', source:'Bank of Canada', time:'09:37' },
+          { tags:['finance'], title:'全球矿业融资 60% 经由多伦多市场，黄金铜锂项目密集路演', source:'TMX', time:'09:19' },
+          { tags:['policy'], title:'加拿大联邦预算聚焦住房与国防，赤字温和扩张', source:'Globe and Mail', time:'09:01' },
+          { tags:['alert'], title:'加元兑美元走弱至 1.38，出口导向型企业受益', source:'Reuters', time:'08:43' },
+          { tags:['live'], title:'【连线】资源型经济体的周期定位与配置机会', source:'大聪明金融', time:'正在直播' },
+          { tags:['update'], title:'多伦多金融科技融资回暖，支付与借贷赛道活跃', source:'BetaKit', time:'08:25' },
+          { tags:['finance','hot'], title:'北美养老金巨头发力基建与私募信贷，另类资产配置占比升至 35%', source:'CPPIB', time:'08:07' },
+        ]},
+    ];
+
+    // 类型映射中文
+    const TYPE_LABELS = { policy:'政策中心', finance:'金融枢纽', energy:'能源港口', geo:'地缘热点', trade:'自贸区', industry:'产业基地', resource:'资源枢纽' };
+    const TYPE_CHIP_STYLES = {
+      policy:'background:rgba(0,212,255,0.12);color:#00d4ff;border:1px solid rgba(0,212,255,0.2)',
+      finance:'background:rgba(59,130,246,0.12);color:#3b82f6;border:1px solid rgba(59,130,246,0.2)',
+      energy:'background:rgba(255,170,50,0.12);color:#ffaa32;border:1px solid rgba(255,170,50,0.2)',
+      geo:'background:rgba(255,92,124,0.12);color:#ff5c7c;border:1px solid rgba(255,92,124,0.2)',
+      trade:'background:rgba(54,224,160,0.12);color:#36e0a0;border:1px solid rgba(54,224,160,0.2)',
+      industry:'background:rgba(180,160,255,0.12);color:#b4a0ff;border:1px solid rgba(180,160,255,0.2)',
+      resource:'background:rgba(255,170,50,0.12);color:#ffaa32;border:1px solid rgba(255,170,50,0.2)',
+    };
+
+    // ===== 3D 地球（Three.js） =====
+    let worldGeo = null; // 由 vendor/data/world.js 注入 window.WORLD_GEO
+    const GLOBE = {
+      ready: false, inited: false,
+      scene: null, camera: null, renderer: null, globeGroup: null,
+      markers: [], dotMeshes: [], raycaster: null, pointer: null,
+      arcs: [], isDragging: false, moved: false, autoRotate: true, R: 1,
+    };
+
+    function latLngToVector3(lat, lng, radius) {
+      const phi = (90 - lat) * Math.PI / 180;
+      const theta = (lng + 180) * Math.PI / 180;
+      return new THREE.Vector3(
+        -radius * Math.sin(phi) * Math.cos(theta),
+        radius * Math.cos(phi),
+        radius * Math.sin(phi) * Math.sin(theta)
+      );
+    }
+
+    // 经纬网格（淡）
+    function buildGraticule(radius) {
+      const group = new THREE.Group();
+      const mat = new THREE.LineBasicMaterial({ color: 0x1f6f9c, transparent: true, opacity: 0.1 });
+      const step = 15;
+      for (let lat = -75; lat <= 75; lat += step) {
+        const pts = [];
+        for (let lng = -180; lng <= 180; lng += 4) pts.push(latLngToVector3(lat, lng, radius));
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+      }
+      for (let lng = -180; lng < 180; lng += step) {
+        const pts = [];
+        for (let lat = -90; lat <= 90; lat += 4) pts.push(latLngToVector3(lat, lng, radius));
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mat));
+      }
+      return group;
+    }
+
+    // 世界国界发光轮廓（双层 additive 描边，复刻参考站 Line2 粗光边）
+    function buildContinentBorders(radius) {
+      const segs = [];        // 亮线
+      const glow = [];        // 外层光晕
+      const pushRing = (ring) => {
+        let prev = null, prevLng = null;
+        for (let i = 0; i < ring.length; i++) {
+          const lng = ring[i][0], lat = ring[i][1];
+          if (lat < -84 || lat > 84) { prev = null; continue; }
+          const cur = latLngToVector3(lat, lng, radius);
+          if (prev) {
+            if (prevLng !== null && Math.abs(prevLng - lng) > 180) { prev = cur; prevLng = lng; continue; }
+            segs.push(prev.x, prev.y, prev.z, cur.x, cur.y, cur.z);
+            const gx = prev.x * 1.005, gy = prev.y * 1.005, gz = prev.z * 1.005;
+            const cx = cur.x * 1.005, cy = cur.y * 1.005, cz = cur.z * 1.005;
+            glow.push(gx, gy, gz, cx, cy, cz);
+          }
+          prev = cur; prevLng = lng;
+        }
+      };
+      if (worldGeo && worldGeo.features) {
+        worldGeo.features.forEach(f => {
+          const g = f.geometry; if (!g) return;
+          const polys = g.type === 'Polygon' ? [g.coordinates]
+                      : (g.type === 'MultiPolygon' ? g.coordinates : []);
+          polys.forEach(poly => poly.forEach(ring => pushRing(ring)));
+        });
+      }
+      const mk = (arr, color, opacity) => {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3));
+        return new THREE.LineSegments(geo, new THREE.LineBasicMaterial({
+          color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false,
+        }));
+      };
+      const group = new THREE.Group();
+      group.add(mk(glow, 0x0a4f86, 0.55));  // 外层粗光晕
+      group.add(mk(segs, 0x3fd0ff, 0.9));   // 内层亮线
+      return group;
+    }
+
+    // 节点间流动光弧 + 彗星点（复刻参考站流动模糊线）
+    function buildFlowArcs(group, radius) {
+      const pairs = [
+        ['beijing','shanghai'],['shanghai','tokyo'],['beijing','singapore'],
+        ['singapore','mumbai'],['mumbai','dubai'],['dubai','sydney'],
+        ['guangzhou','singapore'],['chengdu','xian'],['beijing','chengdu'],
+        ['tokyo','sydney'],['beijing','dubai'],['shanghai','mumbai'],
+        ['guangzhou','tokyo'],['xian','beijing'],
+        ['newyork','london'],['london','frankfurt'],['newyork','tokyo'],
+        ['newyork','hongkong'],['hongkong','shanghai'],['hongkong','singapore'],
+        ['london','paris'],['zurich','frankfurt'],['newyork','sanfrancisco'],
+        ['chicago','newyork'],['sanfrancisco','tokyo'],['toronto','newyork'],
+        ['frankfurt','zurich'],['shenzhen','hongkong'],['paris','frankfurt'],
+      ];
+      const byId = {};
+      MAP_NODES_DATA.forEach(n => { byId[n.id] = n; });
+      const arcs = [];
+      pairs.forEach(([a, b]) => {
+        const na = byId[a], nb = byId[b];
+        if (!na || !nb) return;
+        const start = latLngToVector3(na.lat, na.lng, radius);
+        const end = latLngToVector3(nb.lat, nb.lng, radius);
+        const dist = start.distanceTo(end);
+        const mid = start.clone().add(end).multiplyScalar(0.5)
+          .normalize().multiplyScalar(radius * (1 + dist * 0.4));
+        const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
+        const pts = curve.getPoints(64);
+        const line = new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(pts),
+          new THREE.LineBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false })
+        );
+        group.add(line);
+        const comet = new THREE.Mesh(
+          new THREE.SphereGeometry(radius * 0.014, 12, 12),
+          new THREE.MeshBasicMaterial({ color: 0xaff2ff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })
+        );
+        group.add(comet);
+        arcs.push({ curve, comet, t: Math.random(), speed: 0.1 + Math.random() * 0.12 });
+      });
+      return arcs;
+    }
+
+    // 生成地球表面纹理：实心海洋底色 + 大陆填充 + 青蓝大陆轮廓（与 latLngToVector3 对齐）
+    function buildEarthTexture() {
+      const W = 2048, H = 1024;
+      const c = document.createElement('canvas'); c.width = W; c.height = H;
+      const ctx = c.getContext('2d');
+      // 海洋实心底色
+      ctx.fillStyle = '#081b2e';
+      ctx.fillRect(0, 0, W, H);
+      // 经纬网格（淡，增强科技感）
+      ctx.strokeStyle = 'rgba(0,180,220,0.045)'; ctx.lineWidth = 1;
+      for (let lat = -75; lat <= 75; lat += 15) { const y = (90 - lat) / 180 * H; ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+      for (let lng = -180; lng <= 180; lng += 15) { const x = (lng + 180) / 360 * W; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      if (worldGeo && worldGeo.features) {
+        const project = (lng, lat) => [ (lng + 180) / 360 * W, (90 - lat) / 180 * H ];
+        worldGeo.features.forEach(f => {
+          const g = f.geometry; if (!g) return;
+          const polys = g.type === 'Polygon' ? [g.coordinates] : (g.type === 'MultiPolygon' ? g.coordinates : []);
+          polys.forEach(poly => poly.forEach(ring => {
+            ctx.beginPath();
+            let prevLng = null;
+            ring.forEach((p, i) => {
+              const [x, y] = project(p[0], p[1]);
+              if (i === 0 || (prevLng !== null && Math.abs(prevLng - p[0]) > 180)) ctx.moveTo(x, y);
+              else ctx.lineTo(x, y);
+              prevLng = p[0];
+            });
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(16,48,78,0.92)';   // 大陆实心填充
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(63,208,255,0.5)';  // 大陆轮廓（青蓝）
+            ctx.lineWidth = 1.1;
+            ctx.stroke();
+          }));
+        });
+      }
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.anisotropy = 4;
+      return tex;
+    }
+
+    function initGlobe() {
+      if (GLOBE.inited) return;
+      GLOBE.inited = true;
+      worldGeo = (window.WORLD_GEO && window.WORLD_GEO.features) ? window.WORLD_GEO : null;
+      const canvas = document.getElementById('globeCanvas');
+      const fallback = document.getElementById('globeFallback');
+      if (!window.THREE || !canvas) {
+        if (fallback) { fallback.hidden = false; fallback.textContent = '当前环境不支持 WebGL，无法加载 3D 地球。'; }
+        return;
+      }
+      try {
+        const wrap = document.getElementById('globeWrap');
+        const w = wrap.clientWidth || 600, h = wrap.clientHeight || 400;
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 100);
+        camera.position.set(0, 0.4, 3.4);
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(w, h, false);
+
+        scene.add(new THREE.AmbientLight(0x88aacc, 0.9));
+        const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+        dir.position.set(3, 2, 4);
+        scene.add(dir);
+
+        const globeGroup = new THREE.Group();
+        scene.add(globeGroup);
+
+        const earthTex = buildEarthTexture();
+        const sphere = new THREE.Mesh(
+          new THREE.SphereGeometry(GLOBE.R, 64, 64),
+          new THREE.MeshPhongMaterial({
+            map: earthTex,
+            emissive: 0xffffff, emissiveMap: earthTex, emissiveIntensity: 0.18,
+            shininess: 10, specular: 0x0e2a44,
+          })
+        );
+        globeGroup.add(sphere);
+        globeGroup.add(buildGraticule(GLOBE.R * 1.001));
+        globeGroup.add(buildContinentBorders(GLOBE.R * 1.002));
+
+        // 外轮廓柔和发光边界（Fresnel 光晕，蓝色）
+        const rimMat = new THREE.ShaderMaterial({
+          uniforms: { glowColor: { value: new THREE.Color(0x3fd0ff) } },
+          vertexShader: [
+            'varying vec3 vNormal;',
+            'void main() {',
+            '  vNormal = normalize(normalMatrix * normal);',
+            '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+            '}'
+          ].join('\n'),
+          fragmentShader: [
+            'uniform vec3 glowColor; varying vec3 vNormal;',
+            'void main() {',
+            '  float intensity = pow(0.8 - dot(vNormal, vec3(0.0,0.0,1.0)), 4.0);',
+            '  gl_FragColor = vec4(glowColor, 1.0) * clamp(intensity, 0.0, 1.0);',
+            '}'
+          ].join('\n'),
+          side: THREE.FrontSide, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false, depthTest: false,
+        });
+        const atmo = new THREE.Mesh(new THREE.SphereGeometry(GLOBE.R * 1.32, 48, 48), rimMat);
+        scene.add(atmo);
+
+        // 初始视角自动对准亚洲（lng 100°, lat 30°）
+        globeGroup.rotation.y = (170 * Math.PI) / 180;
+        globeGroup.rotation.x = (30 * Math.PI) / 180;
+
+        const markers = [], dotMeshes = [];
+        MAP_NODES_DATA.forEach(n => {
+          const pos = latLngToVector3(n.lat, n.lng, GLOBE.R * 1.012);
+          const col = new THREE.Color(n.color);
+          const dot = new THREE.Mesh(
+            new THREE.SphereGeometry(GLOBE.R * 0.022, 16, 16),
+            new THREE.MeshBasicMaterial({ color: col })
+          );
+          dot.position.copy(pos);
+          dot.userData.id = n.id;
+          globeGroup.add(dot);
+          dotMeshes.push(dot);
+
+          const ring = new THREE.Mesh(
+            new THREE.RingGeometry(GLOBE.R * 0.03, GLOBE.R * 0.045, 40),
+            new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.7, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
+          );
+          ring.position.copy(pos);
+          ring.lookAt(pos.clone().multiplyScalar(2));
+          globeGroup.add(ring);
+
+          const label = document.createElement('div');
+          label.className = 'globe-label';
+          label.textContent = n.name;
+          globeLabels.appendChild(label);
+
+          markers.push({ id: n.id, dot, ring, label, basePos: pos.clone(), phase: Math.random() * Math.PI * 2 });
+        });
+
+        GLOBE.arcs = buildFlowArcs(globeGroup, GLOBE.R * 1.012);
+
+        // 星空背景
+        const starGeo = new THREE.BufferGeometry();
+        const starCnt = 600, starPos = new Float32Array(starCnt * 3);
+        for (let i = 0; i < starCnt; i++) {
+          const r = 8 + Math.random() * 12;
+          const t = Math.random() * Math.PI * 2, p = Math.acos(2 * Math.random() - 1);
+          starPos[i*3] = r * Math.sin(p) * Math.cos(t);
+          starPos[i*3+1] = r * Math.sin(p) * Math.sin(t);
+          starPos[i*3+2] = r * Math.cos(p);
+        }
+        starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+        scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x2a4a66, size: 0.06, transparent: true, opacity: 0.7 })));
+
+        Object.assign(GLOBE, { scene, camera, renderer, globeGroup, markers, dotMeshes, raycaster: new THREE.Raycaster(), pointer: new THREE.Vector2() });
+        GLOBE.ready = true;
+
+        bindGlobeEvents(canvas);
+        animateGlobe();
+        window.addEventListener('resize', onGlobeResize);
+      } catch (err) {
+        if (fallback) { fallback.hidden = false; fallback.textContent = '3D 地球初始化失败：' + (err && err.message ? err.message : err); }
+        console.error('[globe] init failed', err);
+      }
+    }
+
+    function onGlobeResize() {
+      if (!GLOBE.ready) return;
+      const wrap = document.getElementById('globeWrap');
+      const w = wrap.clientWidth || 600, h = wrap.clientHeight || 400;
+      GLOBE.camera.aspect = w / h;
+      GLOBE.camera.updateProjectionMatrix();
+      GLOBE.renderer.setSize(w, h, false);
+    }
+
+    function bindGlobeEvents(canvas) {
+      let lastX = 0, lastY = 0;
+      const getXY = (e) => (e.touches && e.touches[0]) ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
+      const down = (e) => {
+        GLOBE.isDragging = true; GLOBE.moved = false; GLOBE.autoRotate = false;
+        const p = getXY(e); lastX = p.x; lastY = p.y; GLOBE.downX = p.x; GLOBE.downY = p.y;
+      };
+      const move = (e) => {
+        if (!GLOBE.isDragging) return;
+        const p = getXY(e);
+        const dx = p.x - lastX, dy = p.y - lastY;
+        lastX = p.x; lastY = p.y;
+        if (Math.abs(p.x - GLOBE.downX) + Math.abs(p.y - GLOBE.downY) > 5) GLOBE.moved = true;
+        GLOBE.globeGroup.rotation.y += dx * 0.005;
+        GLOBE.globeGroup.rotation.x += dy * 0.005;
+        GLOBE.globeGroup.rotation.x = Math.max(-1.0, Math.min(1.0, GLOBE.globeGroup.rotation.x));
+      };
+      const up = (e) => {
+        if (GLOBE.isDragging && !GLOBE.moved) {
+          const p = getXY(e);
+          const rect = canvas.getBoundingClientRect();
+          GLOBE.pointer.x = ((p.x - rect.left) / rect.width) * 2 - 1;
+          GLOBE.pointer.y = -((p.y - rect.top) / rect.height) * 2 + 1;
+          GLOBE.raycaster.setFromCamera(GLOBE.pointer, GLOBE.camera);
+          const hits = GLOBE.raycaster.intersectObjects(GLOBE.dotMeshes, false);
+          if (hits.length) selectNode(hits[0].object.userData.id);
+        }
+        GLOBE.isDragging = false;
+        setTimeout(() => { GLOBE.autoRotate = true; }, 4000);
+      };
+      canvas.addEventListener('mousedown', down);
+      window.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', up);
+      canvas.addEventListener('touchstart', down, { passive: true });
+      canvas.addEventListener('touchmove', (e) => move(e), { passive: true });
+      canvas.addEventListener('touchend', up);
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        GLOBE.camera.position.z = Math.max(2.2, Math.min(6, GLOBE.camera.position.z + e.deltaY * 0.002));
+      }, { passive: false });
+    }
+
+    function animateGlobe() {
+      if (!GLOBE.ready) return;
+      requestAnimationFrame(animateGlobe);
+      const t = performance.now() * 0.001;
+      if (GLOBE.autoRotate && !GLOBE.isDragging) GLOBE.globeGroup.rotation.y += 0.0009;
+      const wrap = document.getElementById('globeWrap');
+      const ww = wrap.clientWidth, wh = wrap.clientHeight;
+      const camDir = GLOBE.camera.position.clone().normalize();
+      GLOBE.markers.forEach(m => {
+        const active = m.id === activeNodeId;
+        const speed = active ? 3.2 : 1.6;
+        const pulse = 0.5 + 0.5 * Math.sin(t * speed + m.phase);
+        m.ring.scale.setScalar(1 + 0.35 * pulse);
+        m.ring.material.opacity = (active ? 0.9 : 0.5) * pulse;
+        m.dot.scale.setScalar(active ? 1.9 : 1);
+        const v = new THREE.Vector3();
+        m.dot.getWorldPosition(v);
+        const proj = v.project(GLOBE.camera);
+        const behind = v.clone().normalize().dot(camDir) < 0.02;
+        m.label.style.left = ((proj.x * 0.5 + 0.5) * ww) + 'px';
+        m.label.style.top = ((-proj.y * 0.5 + 0.5) * wh) + 'px';
+        m.label.classList.toggle('hidden', behind);
+        m.label.classList.toggle('active', active);
+      });
+      // 流动光弧的彗星点沿线移动
+      if (GLOBE.arcs) {
+        for (let i = 0; i < GLOBE.arcs.length; i++) {
+          const a = GLOBE.arcs[i];
+          a.t += a.speed * 0.016;
+          if (a.t > 1) a.t -= 1;
+          a.curve.getPoint(a.t, a.comet.position);
+        }
+      }
+      GLOBE.renderer.render(GLOBE.scene, GLOBE.camera);
+    }
+
+    // ===== 地图视图控制器 =====
+    const mapOverlay = document.getElementById('mapOverlay');
+    const mapCloseBtn = document.getElementById('mapCloseBtn');
+    const globeLabels = document.getElementById('globeLabels');
+    const ntName = document.getElementById('ntName');
+    const ntTypeChip = document.getElementById('ntTypeChip');
+    const ntDesc = document.getElementById('ntDesc');
+    const ntScoreFill = document.getElementById('ntScoreFill');
+    const ntScoreVal = document.getElementById('ntScoreVal');
+    const nodeTooltip = document.getElementById('nodeTooltip');
+
+    let activeNodeId = null;
+
+    function openMapOverlay() {
+      mapOverlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      initGlobe();
+      onGlobeResize();
+      if (!activeNodeId && MAP_NODES_DATA.length) selectNode(MAP_NODES_DATA[0].id);
+    }
+
+    function closeMapOverlay() {
+      mapOverlay.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    // 3D 地球节点由 initGlobe 生成，这里仅保留兼容占位
+    function renderMapNodes() {}
+
+    // 选中节点 → 更新地图高亮 + 浮窗 + 新闻列表
+    function selectNode(nodeId) {
+      const node = MAP_NODES_DATA.find(n => n.id === nodeId);
+      if (!node) return;
+      activeNodeId = nodeId;
+
+      // 3D 地球节点高亮：animateGlobe 每帧读取 activeNodeId 实时渲染选中态
+
+      // 更新浮窗信息
+      ntName.textContent = `${node.name} · ${node.region}`;
+      ntTypeChip.textContent = TYPE_LABELS[node.type] || node.type;
+      ntTypeChip.style.cssText = TYPE_CHIP_STYLES[node.type] || '';
+      ntDesc.textContent = node.desc;
+      ntScoreFill.style.width = (node.score * 100) + '%';
+      ntScoreVal.textContent = node.score.toFixed(2);
+      nodeTooltip.classList.add('visible');
+
+      // 更新新闻面板标题
+
+
+    }
+
+    // 打开 / 关闭事件绑定
+    mapCloseBtn.addEventListener('click', closeMapOverlay);
+    mapOverlay.addEventListener('click', (e) => { if (e.target === mapOverlay) closeMapOverlay(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMapOverlay(); });
+
+    // 功能卡片点击 → 打开地图详情视图
+    document.querySelectorAll('.card').forEach(card => {
+      card.classList.add('clickable');
+      card.addEventListener('click', () => openMapOverlay());
+    });
+
+    // ===== 3D / 2D 地图视图切换 =====
+    (function() {
+      const toggle = document.getElementById('mapViewToggle');
+      const btns = toggle.querySelectorAll('button');
+      const globeWrap = document.getElementById('globeWrap');
+      const map2dWrap = document.getElementById('map2dWrap');
+      const mapLegend = document.querySelector('.map-legend');
+      const mapHint = document.querySelector('.globe-hint');
+      const nodeTooltipEl = document.getElementById('nodeTooltip');
+
+      let currentView = '3d';
+
+      function switchView(view) {
+        if (view === currentView) return;
+        currentView = view;
+
+        // 更新按钮状态
+        btns.forEach(b => {
+          const isActive = b.dataset.view === view;
+          b.classList.toggle('active', isActive);
+          b.setAttribute('aria-pressed', String(isActive));
+        });
+
+        if (view === '2d') {
+          // 切到 2D：隐藏 3D 层，显示 iframe，隐藏图例/提示/浮窗
+          globeWrap.classList.add('dimmed');
+          map2dWrap.classList.add('visible');
+          if (mapLegend) mapLegend.style.opacity = '0';
+          if (mapHint) mapHint.style.opacity = '0';
+          if (nodeTooltipEl) nodeTooltipEl.classList.remove('visible');
+          // 暂停 3D 渲染循环以节省性能
+          if (typeof GLOBE !== 'undefined' && GLOBE.animId) {
+            GLOBE._wasAutoRotate = GLOBE.autoRotate;
+            GLOBE.autoRotate = false;
+          }
+        } else {
+          // 切回 3D：恢复所有
+          globeWrap.classList.remove('dimmed');
+          map2dWrap.classList.remove('visible');
+          if (mapLegend) mapLegend.style.opacity = '';
+          if (mapHint) mapHint.style.opacity = '';
+          // 恢复自转
+          if (typeof GLOBE !== 'undefined' && '_wasAutoRotate' in GLOBE) {
+            GLOBE.autoRotate = GLOBE._wasAutoRotate;
+          }
+          // 触发一次 resize 确保 3D 画布尺寸正确
+          if (typeof onGlobeResize === 'function') onGlobeResize();
+        }
+      }
+
+      btns.forEach(b => {
+        b.addEventListener('click', () => switchView(b.dataset.view));
+      });
+    })();
+  </script>
+</body>
+</html>

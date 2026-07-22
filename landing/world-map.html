@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>全球资金流动 · 可交互世界地图</title>
+<script src="vendor/echarts.min.js"></script>
+<style>
+  :root{
+    --bg-1:#070d22; --bg-2:#0b1733; --bg-3:#101d3e;
+    --panel:rgba(15,25,52,0.72);
+    --border:rgba(120,160,220,0.16);
+    --border-strong:rgba(120,170,230,0.38);
+    --text:#eaf1fb; --muted:#9fb2cc; --faint:#6f86a8;
+    --accent:#4fd1e3; --accent-2:#5b9bff; --gold:#ffd666; --good:#3fd29a; --warn:#ff9d6b;
+    --base:#172339; --base-border:#2c3c5e;
+    --ease:cubic-bezier(0.22,0.61,0.36,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text);
+    background:radial-gradient(1200px 700px at 78% -10%, rgba(91,155,255,0.18), transparent 60%),
+               radial-gradient(900px 600px at 10% 110%, rgba(79,209,227,0.14), transparent 55%),
+               linear-gradient(160deg,var(--bg-1) 0%,var(--bg-2) 45%,var(--bg-3) 100%);
+    background-attachment:fixed; min-height:100vh; overflow-x:hidden;
+  }
+  /* 顶部 */
+  header.top{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;
+    padding:16px 26px;border-bottom:1px solid var(--border);
+    background:rgba(8,14,32,0.55);backdrop-filter:blur(12px);position:relative;z-index:10;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand .dot{width:11px;height:11px;border-radius:50%;background:var(--accent);box-shadow:0 0 14px var(--accent);}
+  .brand h1{font-size:19px;font-weight:700;letter-spacing:.5px;}
+  .brand .sub{font-size:11px;color:var(--faint);margin-top:2px;}
+  .search{position:relative;}
+  .search .ic{
+    position:absolute;left:13px;top:50%;transform:translateY(-50%);
+    width:15px;height:15px;stroke:var(--faint);fill:none;stroke-width:2;stroke-linecap:round;pointer-events:none;
+  }
+  .search input{
+    width:260px;max-width:60vw;padding:9px 14px 9px 38px;border-radius:22px;
+    border:1px solid var(--border-strong);background:rgba(10,18,38,0.7);color:var(--text);font-size:13px;outline:none;
+    transition:.2s var(--ease);
+  }
+  .search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,209,227,0.15);}
+  .suggest{
+    position:absolute;top:46px;left:0;right:0;background:rgba(10,18,38,0.97);border:1px solid var(--border-strong);
+    border-radius:12px;overflow:hidden;z-index:30;box-shadow:0 18px 50px rgba(0,0,0,0.5);max-height:320px;overflow-y:auto;
+  }
+  .suggest div{padding:10px 14px;font-size:13px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid rgba(120,160,220,0.08);}
+  .suggest div:hover{background:rgba(79,209,227,0.12);}
+  .suggest div .en{color:var(--faint);font-size:11px;}
+
+  main{display:flex;gap:0;align-items:stretch;min-height:calc(100vh - 120px);}
+  .map-wrap{flex:1;position:relative;min-height:62vh;}
+  #map{width:100%;height:100%;min-height:420px;}
+
+  /* 指标 Tab */
+  .metrics{
+    position:absolute;top:16px;left:16px;z-index:6;display:flex;gap:8px;flex-wrap:wrap;
+    background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:7px;backdrop-filter:blur(8px);
+  }
+  .metrics button{
+    border:none;background:transparent;color:var(--muted);font-size:12px;padding:7px 12px;border-radius:8px;cursor:pointer;transition:.18s var(--ease);white-space:nowrap;
+  }
+  .metrics button:hover{color:var(--text);}
+  .metrics button.active{background:linear-gradient(90deg,rgba(79,209,227,.22),rgba(91,155,255,.22));color:#fff;box-shadow:inset 0 0 0 1px rgba(79,209,227,.4);}
+
+  /* 动态图例 */
+  .legend{
+    position:absolute;left:16px;bottom:16px;z-index:6;background:var(--panel);
+    border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--muted);
+    backdrop-filter:blur(8px);min-width:190px;
+  }
+  .legend .lt{font-size:11px;color:var(--faint);margin-bottom:7px;letter-spacing:.4px;}
+  .legend .bar-grad{height:9px;border-radius:5px;margin:4px 0 5px;background:linear-gradient(90deg,#16243f,#234b8a,#2f8fd0,#54d6e8,#ffd666);}
+  .legend .scale{display:flex;justify-content:space-between;font-size:10px;color:var(--faint);}
+  .legend .chip{display:flex;align-items:center;gap:6px;margin-top:4px;}
+  .legend .chip i{width:11px;height:11px;border-radius:3px;display:inline-block;}
+
+  .reset{
+    position:absolute;right:16px;bottom:16px;z-index:6;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;cursor:pointer;
+    background:var(--panel);border:1px solid var(--border-strong);color:var(--accent);font-size:12px;backdrop-filter:blur(8px);transition:.18s var(--ease);
+  }
+  .reset:hover{background:rgba(79,209,227,0.16);}
+  .reset .ric{width:14px;height:14px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+  /* 侧栏（新闻面板） */
+  .side{
+    width:372px;flex-shrink:0;border-left:1px solid var(--border);
+    background:rgba(8,14,32,0.5);padding:0;overflow-y:auto;display:flex;flex-direction:column;
+  }
+  .side-hdr{padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .side-hdr h2{font-size:16px;margin-bottom:2px;color:#fff;display:flex;align-items:center;gap:8px;font-weight:700;}
+  .side-hdr .sub{font-size:11px;color:var(--faint);}
+  .news-list-wrap{flex:1;overflow-y:auto;padding:0;position:relative;}
+  .news-list{padding:0;}
+  .news-item{padding:14px 20px;border-bottom:1px solid rgba(120,160,220,0.1);cursor:pointer;transition:background .18s var(--ease);}
+  .news-item:hover{background:rgba(79,209,227,0.06);}
+  .news-item .tit{font-size:13px;color:var(--text);line-height:1.55;margin-bottom:6px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .news-item .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--faint);}
+  .news-item .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+  .news-item .pri{font-size:10px;padding:1px 7px;border-radius:8px;background:rgba(255,150,100,0.16);color:var(--warn);}
+  .news-item .pri.high{background:rgba(255,90,90,0.2);color:#ff8a8a;}
+  .news-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 30px;text-align:center;color:var(--muted);font-size:13px;line-height:1.8;}
+  .news-empty .ico{width:36px;height:36px;border-radius:50%;background:rgba(120,160,220,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:16px;color:var(--faint);}
+  /* 节点呼吸动画 */
+  @keyframes nodePulse{0%{box-shadow:0 0 0 0 rgba(255,214,102,0.7);}70%{box-shadow:0 0 0 14px rgba(255,214,102,0);}100%{box-shadow:0 0 0 0 rgba(255,214,102,0);}}
+  .node-pulse{animation:nodePulse 1.8s ease-out infinite;}
+  /* 列表过渡动画（CSS keyframes — 每次触发重播放） */
+  .news-list-animate{animation:newsSlideIn .35s cubic-bezier(0.22,0.61,0.36,1) both;}
+  @keyframes newsSlideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+  /* 排名榜 */
+  .rank-title{font-size:13px;color:var(--muted);margin:18px 0 8px;display:flex;justify-content:space-between;align-items:center;}
+  .rank-title .dim{color:var(--faint);font-size:11px;}
+  .rank{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:.16s var(--ease);border:1px solid transparent;}
+  .rank:hover{background:rgba(79,209,227,0.1);border-color:rgba(79,209,227,0.25);}
+  .rank .no{width:20px;height:20px;border-radius:6px;background:rgba(120,160,220,0.16);color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .rank.top1 .no{background:linear-gradient(135deg,#ffd666,#ffae3b);color:#3a2a00;}
+  .rank.top2 .no{background:linear-gradient(135deg,#cfd8e6,#9fb0c8);color:#1a2233;}
+  .rank.top3 .no{background:linear-gradient(135deg,#e0a06a,#c47e42);color:#2a1600;}
+  .rank .nm{flex:1;font-size:13px;}
+  .rank .nm small{color:var(--faint);font-size:10px;display:block;}
+  .rank .val{font-size:13px;color:var(--accent-2);font-variant-numeric:tabular-nums;}
+  .rank.active{background:rgba(91,155,255,0.16);border-color:rgba(91,155,255,0.4);}
+
+  .src{font-size:11px;color:var(--faint);line-height:1.6;margin-top:14px;border-top:1px solid var(--border);padding-top:12px;}
+
+  /* 移动端底部抽屉 */
+  .drawer-mask{display:none;}
+  @media (max-width:900px){
+    main{flex-direction:column;}
+    .side{width:100%;border-left:none;border-top:1px solid var(--border);max-height:none;}
+    .map-wrap{min-height:56vh;}
+    .side{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:40;max-height:64vh;border-top:1px solid var(--border-strong);
+      border-radius:18px 18px 0 0;box-shadow:0 -10px 40px rgba(0,0,0,0.55);transform:translateY(100%);transition:transform .28s var(--ease);}
+    .side.open{transform:translateY(0);}
+    .drawer-mask{display:block;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:35;opacity:0;pointer-events:none;transition:opacity .28s var(--ease);}
+    .drawer-mask.open{opacity:1;pointer-events:auto;}
+    .side .close{display:block;}
+  }
+  .side .close{display:none;position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;}
+  .errbox{display:flex;align-items:center;justify-content:center;height:100%;color:#ffb3b3;font-size:14px;text-align:center;padding:30px;line-height:1.8;}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="dot"></span>
+    <div>
+      <h1>全球资金流动 · 可交互世界地图</h1>
+      <div class="sub">点击国家查看跨境资本指标 · 滚轮缩放 / 拖拽平移 · 数据着色随指标切换</div>
+    </div>
+  </div>
+  <div class="search">
+    <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="searchInput" type="text" placeholder="搜索国家（中/英文，如 中国 / Japan）" autocomplete="off" />
+    <div class="suggest" id="suggest" style="display:none"></div>
+  </div>
+</header>
+
+<main>
+  <div class="map-wrap">
+    <div id="map"></div>
+
+    <div class="metrics" id="metrics">
+      <button data-m="fdi" class="active">跨境资本净流入</button>
+      <button data-m="gdp">经济总量 GDP</button>
+      <button data-m="cont">按大洲分布</button>
+    </div>
+
+    <div class="legend" id="legend"></div>
+    <button class="reset" id="resetBtn">
+      <svg class="ric" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.35"/><polyline points="3 3 3 8 8 8"/></svg>
+      <span>重置视图</span>
+    </button>
+  </div>
+
+  <div class="drawer-mask" id="mask"></div>
+
+  <aside class="side" id="side">
+    <button class="close" id="closeBtn">&times;</button>
+    <div class="side-hdr">
+      <h2 id="sideTitle">全球概览</h2>
+      <div class="sub">点击金色圆点查看金融资讯</div>
+    </div>
+    <div class="news-list-wrap" id="sideBody"></div>
+  </aside>
+</main>
+
+<footer style="padding:12px 26px;font-size:11px;color:var(--muted);border-top:1px solid var(--border);line-height:1.7">
+  数据来源：World Bank Open Data（<a href="https://api.worldbank.org" style="color:var(--accent)">api.worldbank.org</a>）、IMF WEO。
+  地图着色所用数值为基于 World Bank / IMF 2022 年公开报告的近似值（单位见图例），用于可视化参考；点击国家可拉取 World Bank 实时最新值。
+  底图：ECharts world GeoJSON。台湾数据列入统计，标注为「中国台湾」。
+</footer>
+
+<script src="vendor/data/world-geo.js"></script>
+<script>
+/* 设计令牌（集中管理颜色，避免散落硬编码）—— 与 landing 深空蓝同源 */
+const COLORS = {
+  accent:'#4fd1e3', accent2:'#5b9bff', gold:'#ffd666', good:'#3fd29a',
+  base:'#172339', border:'#2c3c5e',
+  cont:{ AS:'#4fd1e3', EU:'#7c8cff', NA:'#ffb86b', SA:'#ff8f6b', AF:'#ffd666', OC:'#5be3a0' },
+  fdiGrad:['#16243f','#234b8a','#2f8fd0','#54d6e8','#ffd666'],
+  gdpGrad:['#16243f','#2d6db5','#3fd0c0','#ffd666']
+};
+
+/* ===== 国家数据集（World Bank / IMF 2022 公开近似值） =====
+   fdi: 跨境资本净流入 (FDI, 十亿美元, 当前美元)
+   gdp: 经济总量 (万亿美元)
+   cont: 大洲 AS/EU/NA/SA/AF/OC
+*/
+const COUNTRY = {
+  "United States":{cn:"美国",cont:"NA",cap:"华盛顿",g20:1,fdi:328.8,gdp:25.4},
+  "China":{cn:"中国",cont:"AS",cap:"北京",g20:1,fdi:189.1,gdp:17.9},
+  "Japan":{cn:"日本",cont:"AS",cap:"东京",g20:1,fdi:2.0,gdp:4.2},
+  "Germany":{cn:"德国",cont:"EU",cap:"柏林",g20:1,fdi:17.0,gdp:4.0},
+  "United Kingdom":{cn:"英国",cont:"EU",cap:"伦敦",g20:1,fdi:51.0,gdp:3.1},
+  "France":{cn:"法国",cont:"EU",cap:"巴黎",g20:1,fdi:46.0,gdp:2.8},
+  "India":{cn:"印度",cont:"AS",cap:"新德里",g20:1,fdi:49.4,gdp:3.4},
+  "Russia":{cn:"俄罗斯",cont:"EU",cap:"莫斯科",g20:1,fdi:-1.0,gdp:2.2},
+  "Canada":{cn:"加拿大",cont:"NA",cap:"渥太华",g20:1,fdi:49.0,gdp:2.1},
+  "Brazil":{cn:"巴西",cont:"SA",cap:"巴西利亚",g20:1,fdi:86.1,gdp:1.9},
+  "Australia":{cn:"澳大利亚",cont:"OC",cap:"堪培拉",g20:1,fdi:38.0,gdp:1.7},
+  "South Korea":{cn:"韩国",cont:"AS",cap:"首尔",g20:1,fdi:14.0,gdp:1.7},
+  "Italy":{cn:"意大利",cont:"EU",cap:"罗马",g20:1,fdi:22.0,gdp:2.0},
+  "Mexico":{cn:"墨西哥",cont:"NA",cap:"墨西哥城",g20:1,fdi:35.4,gdp:1.4},
+  "South Africa":{cn:"南非",cont:"AF",cap:"比勒陀利亚",g20:1,fdi:9.0,gdp:0.4},
+  "Saudi Arabia":{cn:"沙特阿拉伯",cont:"AS",cap:"利雅得",g20:1,fdi:8.0,gdp:1.1},
+  "Turkey":{cn:"土耳其",cont:"AS",cap:"安卡拉",g20:1,fdi:13.0,gdp:0.9},
+  "Indonesia":{cn:"印度尼西亚",cont:"AS",cap:"雅加达",g20:1,fdi:22.0,gdp:1.3},
+  "Argentina":{cn:"阿根廷",cont:"SA",cap:"布宜诺斯艾利斯",g20:1,fdi:15.0,gdp:0.6},
+  "Netherlands":{cn:"荷兰",cont:"EU",cap:"阿姆斯特丹",g20:0,fdi:47.0,gdp:1.0},
+  "Spain":{cn:"西班牙",cont:"EU",cap:"马德里",g20:0,fdi:30.0,gdp:1.4},
+  "Switzerland":{cn:"瑞士",cont:"EU",cap:"伯尔尼",g20:0,fdi:30.0,gdp:0.8},
+  "Sweden":{cn:"瑞典",cont:"EU",cap:"斯德哥尔摩",g20:0,fdi:25.0,gdp:0.6},
+  "Belgium":{cn:"比利时",cont:"EU",cap:"布鲁塞尔",g20:0,fdi:20.0,gdp:0.6},
+  "Norway":{cn:"挪威",cont:"EU",cap:"奥斯陆",g20:0,fdi:5.0,gdp:0.5},
+  "Austria":{cn:"奥地利",cont:"EU",cap:"维也纳",g20:0,fdi:10.0,gdp:0.5},
+  "Poland":{cn:"波兰",cont:"EU",cap:"华沙",g20:0,fdi:5.0,gdp:0.7},
+  "Portugal":{cn:"葡萄牙",cont:"EU",cap:"里斯本",g20:0,fdi:5.0,gdp:0.3},
+  "Ireland":{cn:"爱尔兰",cont:"EU",cap:"都柏林",g20:0,fdi:45.0,gdp:0.5},
+  "Denmark":{cn:"丹麦",cont:"哥本哈根",g20:0,fdi:12.0,gdp:0.4},
+  "Finland":{cn:"芬兰",cont:"EU",cap:"赫尔辛基",g20:0,fdi:8.0,gdp:0.3},
+  "Greece":{cn:"希腊",cont:"EU",cap:"雅典",g20:0,fdi:4.0,gdp:0.2},
+  "Ukraine":{cn:"乌克兰",cont:"EU",cap:"基辅",g20:0,fdi:1.0,gdp:0.16},
+  "Chile":{cn:"智利",cont:"SA",cap:"圣地亚哥",g20:0,fdi:20.0,gdp:0.3},
+  "Colombia":{cn:"哥伦比亚",cont:"SA",cap:"波哥大",g20:0,fdi:16.0,gdp:0.36},
+  "Peru":{cn:"秘鲁",cont:"SA",cap:"利马",g20:0,fdi:9.0,gdp:0.24},
+  "Venezuela":{cn:"委内瑞拉",cont:"SA",cap:"加拉加斯",g20:0,fdi:-3.0,gdp:0.1},
+  "Egypt":{cn:"埃及",cont:"AF",cap:"开罗",g20:0,fdi:11.0,gdp:0.48},
+  "Nigeria":{cn:"尼日利亚",cont:"AF",cap:"阿布贾",g20:0,fdi:4.0,gdp:0.47},
+  "Kenya":{cn:"肯尼亚",cont:"AF",cap:"内罗毕",g20:0,fdi:0.5,gdp:0.11},
+  "United Arab Emirates":{cn:"阿拉伯联合酋长国",cont:"AS",cap:"阿布扎比",g20:0,fdi:23.0,gdp:0.5},
+  "Iran":{cn:"伊朗",cont:"AS",cap:"德黑兰",g20:0,fdi:2.0,gdp:0.37},
+  "Iraq":{cn:"伊拉克",cont:"AS",cap:"巴格达",g20:0,fdi:5.0,gdp:0.26},
+  "Israel":{cn:"以色列",cont:"AS",cap:"耶路撒冷",g20:0,fdi:12.0,gdp:0.52},
+  "Thailand":{cn:"泰国",cont:"AS",cap:"曼谷",g20:0,fdi:7.0,gdp:0.5},
+  "Vietnam":{cn:"越南",cont:"AS",cap:"河内",g20:0,fdi:7.6,gdp:0.41},
+  "Singapore":{cn:"新加坡",cont:"AS",cap:"新加坡",g20:0,fdi:141.2,gdp:0.5},
+  "Malaysia":{cn:"马来西亚",cont:"AS",cap:"吉隆坡",g20:0,fdi:16.0,gdp:0.43},
+  "Philippines":{cn:"菲律宾",cont:"AS",cap:"马尼拉",g20:0,fdi:5.0,gdp:0.4},
+  "Pakistan":{cn:"巴基斯坦",cont:"AS",cap:"伊斯兰堡",g20:0,fdi:1.5,gdp:0.37},
+  "Kazakhstan":{cn:"哈萨克斯坦",cont:"AS",cap:"阿斯塔纳",g20:0,fdi:4.0,gdp:0.22},
+  "New Zealand":{cn:"新西兰",cont:"OC",cap:"惠灵顿",g20:0,fdi:8.0,gdp:0.25},
+  "Taiwan":{cn:"中国台湾",cont:"AS",cap:"台北",g20:0,fdi:5.0,gdp:0.79},
+  "Czechia":{cn:"捷克",cont:"EU",cap:"布拉格",g20:0,fdi:11.0,gdp:0.29},
+  "Romania":{cn:"罗马尼亚",cont:"EU",cap:"布加勒斯特",g20:0,fdi:13.0,gdp:0.3},
+  "Hungary":{cn:"匈牙利",cont:"EU",cap:"布达佩斯",g20:0,fdi:6.0,gdp:0.18},
+  "Qatar":{cn:"卡塔尔",cont:"AS",cap:"多哈",g20:0,fdi:2.0,gdp:0.24},
+  "Kuwait":{cn:"科威特",cont:"AS",cap:"科威特城",g20:0,fdi:1.0,gdp:0.18},
+  "Bangladesh":{cn:"孟加拉国",cont:"AS",cap:"达卡",g20:0,fdi:3.0,gdp:0.46},
+  "Morocco":{cn:"摩洛哥",cont:"AF",cap:"拉巴特",g20:0,fdi:2.0,gdp:0.14},
+  "Algeria":{cn:"阿尔及利亚",cont:"AF",cap:"阿尔及尔",g20:0,fdi:2.0,gdp:0.2},
+  "Ethiopia":{cn:"埃塞俄比亚",cont:"AF",cap:"亚的斯亚贝巴",g20:0,fdi:4.0,gdp:0.13}
+};
+
+/* ECharts world.json 国家名映射（部分键名不一致） */
+const MAP_NAME = { "South Korea":"Korea", "Czechia":"Czech Rep." };
+function mapName(en){ return MAP_NAME[en] || en; }
+const EN_BY_MAP = {};
+Object.keys(COUNTRY).forEach(function(en){ EN_BY_MAP[mapName(en)] = en; });
+
+/* 大洲元数据 */
+const CONT = {
+  AS:{name:"亚洲",color:COLORS.cont.AS},
+  EU:{name:"欧洲",color:COLORS.cont.EU},
+  NA:{name:"北美洲",color:COLORS.cont.NA},
+  SA:{name:"南美洲",color:COLORS.cont.SA},
+  AF:{name:"非洲",color:COLORS.cont.AF},
+  OC:{name:"大洋洲",color:COLORS.cont.OC}
+};
+const WB_ISO = {
+  "United States":"USA","China":"CHN","Japan":"JPN","Germany":"DEU","United Kingdom":"GBR",
+  "France":"FRA","India":"IND","Russia":"RUS","Canada":"CAN","Brazil":"BRA","Australia":"AUS",
+  "South Korea":"KOR","Italy":"ITA","Mexico":"MEX","South Africa":"ZAF","Saudi Arabia":"SAU",
+  "Turkey":"TUR","Indonesia":"IDN","Argentina":"ARG","Netherlands":"NLD","Spain":"ESP",
+  "Switzerland":"CHE","Sweden":"SWE","Belgium":"BEL","Norway":"NOR","Austria":"AUT","Poland":"POL",
+  "Portugal":"PRT","Ireland":"IRL","Denmark":"DNK","Finland":"FIN","Greece":"GRC","Ukraine":"UKR",
+  "Chile":"CHL","Colombia":"COL","Peru":"PER","Venezuela":"VEN","Egypt":"EGY","Nigeria":"NGA",
+  "Kenya":"KEN","United Arab Emirates":"ARE","Iran":"IRN","Iraq":"IRQ","Israel":"ISR","Thailand":"THA",
+  "Vietnam":"VNM","Singapore":"SGP","Malaysia":"MYS","Philippines":"PHL","Pakistan":"PAK",
+  "Kazakhstan":"KAZ","New Zealand":"NZL","Taiwan":"TWN","Czechia":"CZE","Romania":"ROU",
+  "Hungary":"HUN","Qatar":"QAT","Kuwait":"KWT","Bangladesh":"BGD","Morocco":"MAR","Algeria":"DZA",
+  "Ethiopia":"ETH"
+};
+/* 外债存量后备（十亿美元，World Bank 2022 近似） */
+const FALLBACK_DEBT = {
+  USA:21000,CHN:2500,JPN:4500,DEU:6000,GBR:9000,FRA:7500,IND:620,RUS:380,CAN:2000,BRA:650,
+  AUS:2100,KOR:680,ITA:2900,ESP:2600,NLD:4500,CHE:1900,MEX:480,ZAF:190,IDN:400,TUR:440,
+  SAU:250,ARE:250,SGP:1500,THA:260,MYS:300
+};
+
+/* ===== 全球金融中心城市节点（统一数据结构，便于扩展） =====
+   { id, cn(中文名), en(英文名), lat(纬度), lng(经度), rank(全球金融中心排名,数字越小越重要), desc(金融地位简述) }
+   排名依据 GFCI（全球金融中心指数）近似值，仅作可视化参考；坐标使用标准经纬度。 */
+const CITY_NODES = [
+  { id:'nyc',       cn:'纽约',     en:'New York',      lat:40.71,  lng:-74.00, rank:1,  desc:'全球最大金融中心，华尔街所在地，美股、美债与美元定价核心，全球资本市场枢纽。' },
+  { id:'london',    cn:'伦敦',     en:'London',        lat:51.51,  lng:-0.13,  rank:2,  desc:'欧洲最大金融中心，全球外汇与离岸美元交易枢纽，保险与航运金融重镇。' },
+  { id:'singapore', cn:'新加坡',   en:'Singapore',     lat:1.35,   lng:103.82, rank:3,  desc:'亚洲美元离岸中心，财富管理与家族办公室聚集地，连接东西方资本枢纽。' },
+  { id:'hongkong',  cn:'香港',     en:'Hong Kong',     lat:22.30,  lng:114.17, rank:4,  desc:'亚洲国际金融中心，全球离岸人民币业务枢纽与内地企业境外融资门户。' },
+  { id:'sf',        cn:'旧金山',   en:'San Francisco', lat:37.77,  lng:-122.42,rank:5,  desc:'全球风投与科技金融中心，硅谷核心，IPO 与私募股权活跃。' },
+  { id:'shanghai',  cn:'上海',     en:'Shanghai',      lat:31.23,  lng:121.47, rank:6,  desc:'中国内地金融门户，上交所所在地，人民币国际化与跨境金融前沿。' },
+  { id:'tokyo',     cn:'东京',     en:'Tokyo',         lat:35.69,  lng:139.69, rank:7,  desc:'亚洲重要资本中心，全球最大债券市场与机构投资者聚集地。' },
+  { id:'seoul',     cn:'首尔',     en:'Seoul',         lat:37.57,  lng:126.98, rank:8,  desc:'东北亚金融科技中心，韩国交易所与科创融资活跃。' },
+  { id:'shenzhen',  cn:'深圳',     en:'Shenzhen',      lat:22.54,  lng:114.06, rank:9,  desc:'中国科技创新高地，深交所与创业板所在地，创投生态发达。' },
+  { id:'chicago',   cn:'芝加哥',   en:'Chicago',       lat:41.88,  lng:-87.63, rank:10, desc:'全球衍生品与大宗商品定价中心，CME/CBOT 所在地。' },
+  { id:'frankfurt', cn:'法兰克福', en:'Frankfurt',     lat:50.11,  lng:8.68,   rank:11, desc:'欧元区金融中心，欧洲央行所在地，欧元支付清算枢纽。' },
+  { id:'paris',     cn:'巴黎',     en:'Paris',         lat:48.85,  lng:2.35,   rank:12, desc:'欧元区重要资本市场，泛欧交易所总部，资产管理中心。' },
+  { id:'sydney',    cn:'悉尼',     en:'Sydney',        lat:-33.87, lng:151.21, rank:13, desc:'亚太资金中转站，澳洲金融与大宗商品出口融资中心。' },
+  { id:'dubai',     cn:'迪拜',     en:'Dubai',         lat:25.20,  lng:55.27,  rank:14, desc:'中东金融枢纽，离岸美元与伊斯兰金融中心，连接欧亚非资本。' },
+  { id:'zurich',    cn:'苏黎世',   en:'Zurich',        lat:47.37,  lng:8.54,   rank:15, desc:'全球财富管理与私人银行中心，稳健保密的资产管理重镇。' },
+  { id:'toronto',   cn:'多伦多',   en:'Toronto',       lat:43.65,  lng:-79.38, rank:16, desc:'全球矿业与资源融资枢纽，多伦多证交所主导资源类 IPO。' }
+];
+const CITY_BY_ID = {};
+CITY_NODES.forEach(function(c){ CITY_BY_ID[c.id] = c; });
+// 中文名 → 城市对象（ECharts effectScatter 点击时用 name 属性匹配，100% 命中）
+const CITY_BY_NAME = {};
+CITY_NODES.forEach(function(c){ CITY_BY_NAME[c.cn] = c; });
+
+/* 资金流向连线（按真实金融枢纽逻辑连接，id 对） */
+const FLOW_PAIRS = [
+  ['nyc','london'],['nyc','hongkong'],['nyc','tokyo'],['nyc','frankfurt'],['nyc','sf'],['nyc','chicago'],['nyc','toronto'],
+  ['london','frankfurt'],['london','paris'],['london','zurich'],['london','singapore'],['london','dubai'],
+  ['hongkong','shanghai'],['hongkong','shenzhen'],['hongkong','singapore'],['hongkong','tokyo'],['hongkong','sydney'],
+  ['singapore','tokyo'],['singapore','sydney'],['singapore','dubai'],
+  ['shanghai','tokyo'],['shanghai','seoul'],
+  ['seoul','tokyo'],
+  ['dubai','frankfurt'],
+  ['zurich','frankfurt'],['zurich','paris'],
+  ['paris','frankfurt'],
+  ['sf','chicago']
+];
+
+/* 数值格式化 */
+function fmtB(b){ if(b==null) return "—";
+  const neg=b<0?"-":""; b=Math.abs(b);
+  if(b>=1000) return neg+(b/1000).toFixed(2)+" 万亿美元";
+  return neg+b.toFixed(1)+" 十亿美元";
+}
+function fmtT(t){ if(t==null) return "—"; return t.toFixed(2)+" 万亿美元"; }
+
+/* ===== 地图初始化 ===== */
+const chart = echarts.init(document.getElementById('map'));
+let mapLoaded=false, currentMetric='fdi', selectedName=null;
+
+/* ===== 地图点击（城市节点 / 国家） ===== */
+chart.on('click', function(p){
+  if(!p) return;
+  if(p.seriesType==='effectScatter'){
+    var c = CITY_BY_NAME[p.name];
+    if(c) selectCity(c);
+  } else if(p.seriesType==='map'||p.seriesType==='geo'){
+    var en = EN_BY_MAP[p.name];
+    if(en) selectCountry(en);
+  }
+});
+
+/* ===== 指标 Tab 切换 ===== */
+document.querySelectorAll('.metrics button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('.metrics button').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    currentMetric = btn.dataset.m;
+    if(mapLoaded) renderMap();
+  });
+});
+
+const METRICS = {
+  fdi:{label:"跨境资本净流入 (FDI)",unit:"十亿美元",grad:COLORS.fdiGrad,
+       fmt:function(v){return v==null?'—':fmtB(v);}},
+  gdp:{label:"经济总量 (GDP)",unit:"万亿美元",grad:COLORS.gdpGrad,
+       fmt:function(v){return v==null?'—':fmtT(v);}},
+  cont:{label:"按大洲分布",unit:"",grad:Object.keys(CONT).map(function(k){return CONT[k].color;}),
+       fmt:function(v){return v==null?'—':(CONT[v]?CONT[v].name:v);}}
+};
+
+/* ===== 地图渲染 ===== */
+function renderMap(){
+  var data = [];
+  Object.keys(COUNTRY).forEach(function(en){
+    var c = COUNTRY[en], mn = mapName(en), v = c[currentMetric];
+    data.push({ name:mn, value:v, cn:c.cn, en:en });
+  });
+  var isCont = (currentMetric==='cont');
+  var visual = isCont ? {
+    type:'category',
+    categories:Object.keys(CONT).map(function(k){return {name:CONT[k].name, value:k}; }),
+    color:[COLORS.cont.AS,COLORS.cont.EU,COLORS.cont.NA,COLORS.cont.SA,COLORS.cont.AF,COLORS.cont.OC],
+    dimension:0
+  } : {
+    type:'continuous',
+    min:0,
+    max:isCont ? undefined : (currentMetric==='fdi' ? 350 : 28),
+    inRange:{ color: METRICS[currentMetric].grad },
+    dimension:0
+  };
+  var series = [
+    {
+      type:'map', map:'world', geoIndex:0,
+      data:data,
+      selectedMode:false,
+      itemStyle:{ areaColor:'#0e1a34', borderColor:'rgba(120,160,220,0.25)', borderWidth:0.6 },
+      emphasis:{ itemStyle:{ areaColor:'#1c3466', borderColor:'rgba(79,209,227,0.6)', borderWidth:1.2 } },
+      select:{ disabled:true }
+    },
+    {
+      type:'effectScatter', coordinateSystem:'geo', geoIndex:0,
+      data:CITY_NODES.map(function(c){ return {name:c.cn, value:[c.lng, c.lat, c.rank], id:c.id}; }),
+      symbolSize:function(v){ return Math.max(8, 22 - v[2]*0.7); },
+      showEffectOn:'render', rippleEffect:{ brushType:'stroke', scale:3, period:4 },
+      itemStyle:{ color:COLORS.gold, borderColor:'#fff', borderWidth:1, shadowBlur:12, shadowColor:'rgba(255,214,102,0.6)' },
+      label:{ show:false },
+      emphasis:{ label:{ show:true, formatter:'{b}', color:'#fff', fontSize:12, fontWeight:'bold' } },
+      zlevel:2
+    },
+    {
+      type:'lines', coordinateSystem:'geo', geoIndex:0,
+      effect:{ show:true, period:3, trailLength:0.4, color:COLORS.accent, symbolSize:4 },
+      lineStyle:{ color:'rgba(79,209,227,0.35)', width:1, curveness:0.2, opacity:0.8 },
+      data:FLOW_PAIRS.map(function(pair){
+        var a=CITY_BY_ID[pair[0]], b=CITY_BY_ID[pair[1]];
+        return { coords:[[a.lng,a.lat],[b.lng,b.lat]], from:a.cn, to:b.cn };
+      }),
+      zlevel:1
+    }
+  ];
+  chart.setOption({
+    tooltip:{
+      trigger:'item', backgroundColor:'rgba(10,18,38,0.95)', borderColor:'rgba(120,170,230,0.4)', textStyle:{ color:'#eaf1fb', fontSize:12 },
+      formatter:function(p){
+        if(p.seriesType==='effectScatter'){ var c=CITY_BY_NAME[p.name]; return '<b>'+c.cn+'</b> ('+c.en+')<br/>GFCI 排名 #'+c.rank+'<br/>'+c.desc; }
+        if(p.seriesType==='lines'){ return p.data.from+' → '+p.data.to; }
+        if(p.value==null) return p.name+'<br/>暂无数据';
+        return '<b>'+p.name+'</b><br/>'+METRICS[currentMetric].label+'：'+METRICS[currentMetric].fmt(p.value);
+      }
+    },
+    geo:{ map:'world', roam:true, layoutSize:'110%',
+      itemStyle:{ areaColor:'#0e1a34', borderColor:'rgba(120,160,220,0.25)', borderWidth:0.6 },
+      emphasis:{ itemStyle:{ areaColor:'#1c3466', borderColor:'rgba(79,209,227,0.6)', borderWidth:1.2 } },
+      label:{ show:false }
+    },
+    visualMap:isCont ? undefined : {
+      type:isCont?'category':'continuous', min:0, max:currentMetric==='fdi'?350:28,
+      text:['高','低'], textStyle:{ color:'#9fb2cc', fontSize:10 },
+      inRange:{ color:METRICS[currentMetric].grad },
+      calculable:true, orient:'vertical', left:16, bottom:60, itemWidth:14, itemHeight:120
+    },
+    series:series
+  }, true);
+  // 更新图例
+  var lg = document.getElementById('legend');
+  if(isCont){
+    lg.innerHTML='<div class="lt">按大洲分布</div>'+Object.keys(CONT).map(function(k){return '<div class="chip"><i style="background:'+CONT[k].color+'"></i>'+CONT[k].name+'</div>';}).join('');
+  } else {
+    lg.innerHTML='<div class="lt">'+METRICS[currentMetric].label+' ('+METRICS[currentMetric].unit+')</div>'+
+      '<div class="bar-grad"></div>'+
+      '<div class="scale"><span>'+(currentMetric==='fdi'?'0':'0')+'</span><span>'+(currentMetric==='fdi'?'350+':'28+')+'</span></div>';
+  }
+}
+
+/* ===== 新闻 Mock 数据（6城 × 4-6条，含 priority 1-5 + time 分钟前 ===== */
+const NEWS_DATA = {
+  "纽约":[
+    {title:"美联储议息会议临近，华尔街对9月降息预期升至78%",time:5,priority:5},
+    {title:"纽交所科技股板块连续三日反弹，纳斯达克100创月内新高",time:12,priority:4},
+    {title:"纽约摩根大通发布Q3财报，净利润同比增长14%",time:30,priority:4},
+    {title:"华尔街投行上调美国大型银行股目标价，青睐高息差红利",time:55,priority:3},
+    {title:"纽约加密货币交易所交易量激增，比特币突破68000美元",time:90,priority:3},
+    {title:"曼哈顿商业地产Q2空置率微降至18.2%，租金企稳",time:180,priority:1}
+  ],
+  "伦敦":[
+    {title:"英国央行维持利率5.25%不变，释放11月降息信号",time:8,priority:5},
+    {title:"伦敦富时100指数收盘上涨0.8%，银行板块领涨",time:22,priority:4},
+    {title:"英格兰银行发布金融稳定报告，警告地缘政治风险",time:45,priority:4},
+    {title:"伦敦金属交易所铝库存降至历史新低，价格走高",time:75,priority:2},
+    {title:"英镑兑美元走强至1.29，受美降息预期推动",time:120,priority:2},
+    {title:"伦敦金融科技Q2融资额创欧洲纪录",time:240,priority:1}
+  ],
+  "上海":[
+    {title:"央行宣布降准0.5个百分点，释放长期流动性约1万亿元",time:3,priority:5},
+    {title:"A股三大指数收涨，沪指重上3200点关口",time:18,priority:4},
+    {title:"上海自贸区跨境人民币结算额同比增长35%",time:40,priority:4},
+    {title:"科创板做市商扩容至12家，流动性显著改善",time:65,priority:3},
+    {title:"陆家嘴金融城发布Q2全球资管机构净流入报告",time:150,priority:2},
+    {title:"上海楼市限购松绑首周，新房成交量环比涨18%",time:300,priority:1}
+  ],
+  "香港":[
+    {title:"金管局买入港元捍卫联系汇率，隔夜HIBOR急升",time:6,priority:5},
+    {title:"港股恒生指数大涨340点，科技指数反弹2.1%",time:25,priority:4},
+    {title:"港交所IPO回暖，三季度首批3家企业过会",time:50,priority:3},
+    {title:"香港家族办公室税收优惠落地半年，超150家落户",time:100,priority:3},
+    {title:"离岸人民币兑美元升破7.15关口",time:200,priority:2},
+    {title:"香港虚拟资产交易平台新增4家合规机构",time:360,priority:1}
+  ],
+  "深圳":[
+    {title:"深交所创业板改革试点注册制两周年，融资超5000亿",time:15,priority:4},
+    {title:"深圳前海跨境贷规模突破800亿元，同比增长28%",time:35,priority:4},
+    {title:"深圳创投圈Q2募资额领跑全国，硬科技赛道占七成",time:70,priority:3},
+    {title:"华为供应链金融平台落地前海，首批授信50亿元",time:130,priority:2},
+    {title:"深圳数字人民币试点扩围至跨境消费场景",time:280,priority:1}
+  ],
+  "东京":[
+    {title:"日本央行结束负利率时代，加息至0.25%",time:10,priority:5},
+    {title:"日经225指数突破42000点，创历史新高",time:28,priority:4},
+    {title:"日元汇率剧烈波动，美元兑日元一度跌破148",time:55,priority:4},
+    {title:"东京证券交易所推动公司治理改革，要求PB>1",time:90,priority:3},
+    {title:"日本三大银行Q1净利润齐增，海外业务贡献突出",time:160,priority:2},
+    {title:"东京数字资产交易所上线以太坊现货ETF",time:350,priority:1}
+  ]
+};
+
+/* ===== 新闻渲染（带动画过渡 + 防抖） ===== */
+let _newsTimer = null, _newsSeq = 0;
+function renderNews(cityName){
+  _newsSeq++;
+  var seq = _newsSeq;
+  var list = NEWS_DATA[cityName] || [];
+  var sideTitle = document.getElementById('sideTitle');
+  var sideBody = document.getElementById('sideBody');
+  // 排序：priority降序 > time升序（时间小的=新的在前）
+  var sorted = list.slice().sort(function(a,b){ return b.priority-a.priority || a.time-b.time; });
+  // 构建 HTML
+  var html = '';
+  if(sorted.length===0){
+    html = '<div class="news-empty"><div class="ico">!</div>当前暂无关于 <b style="color:var(--text)">'+cityName+'</b> 的最新金融资讯<br/>换个城市看看？</div>';
+  } else {
+    html = '<div class="news-list">' + sorted.map(function(n){
+      var priClass = n.priority>=4 ? 'pri high' : 'pri';
+      var priLabel = n.priority>=4 ? '重要' : (n.priority>=3 ? '关注' : '');
+      return '<div class="news-item"><div class="tit">'+n.title+'</div><div class="meta">'+
+        '<span class="dot"></span><span>'+n.time+'分钟前</span>'+
+        (priLabel?'<span '+priClass+'>'+priLabel+'</span>':'')+
+        '</div></div>';
+    }).join('') + '</div>';
+  }
+  // 防抖：延迟渲染，只渲染最后一次调用
+  clearTimeout(_newsTimer);
+  _newsTimer = setTimeout(function(){
+    if(seq !== _newsSeq) return;
+    sideTitle.textContent = cityName+' · 金融动态';
+    sideBody.innerHTML = html;
+    // 触发 CSS 动画重新播放
+    sideBody.classList.remove('news-list-animate');
+    void sideBody.offsetWidth;
+    sideBody.classList.add('news-list-animate');
+    sideBody.scrollTop = 0;
+  }, 180);
+}
+
+/* ===== 全球概览 ===== */
+function showOverview(){
+  selectedName=null;
+  document.getElementById('sideTitle').textContent='全球概览';
+  document.getElementById('sideBody').innerHTML=
+    '<div class="news-empty"><div class="ico">G</div>点击地图上的金色圆点<br/>查看该城市最新金融资讯</div>'+
+    '<div style="padding:18px 20px 0">'+
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">热门金融城市</div>'+
+    CITY_NODES.slice(0,6).map(function(c){ return '<div class="news-item" data-id="'+c.id+'" style="padding:10px 0;border-bottom:1px solid rgba(120,160,220,0.08)"><div class="tit" style="font-size:12px;margin-bottom:0">'+c.cn+' <small style="color:var(--faint);font-size:10px">'+c.en+'</small></div></div>'; }).join('')+
+    '</div>';
+  document.querySelectorAll('.news-item[data-id]').forEach(function(el){
+    el.addEventListener('click', function(){ var c=CITY_BY_ID[el.dataset.id]; if(c) selectCity(c); });
+  });
+}
+
+/* ===== 选中城市 ===== */
+function selectCity(c){
+  selectedName=c.cn;
+  // 触发节点呼吸动画
+  chart.dispatchAction({type:'highlight',seriesType:'effectScatter',name:c.cn});
+  setTimeout(function(){ chart.dispatchAction({type:'downplay',seriesType:'effectScatter',name:c.cn}); }, 1800);
+  renderNews(c.cn);
+  if(window.innerWidth<=900) openSide();
+}
+
+/* ===== 选中国家 ===== */
+function selectCountry(en){
+  var c=COUNTRY[en]; if(!c) return;
+  selectedName=c.cn;
+  document.getElementById('sideTitle').textContent = c.cn;
+  document.getElementById('sideBody').innerHTML = '<div class="news-empty"><div class="ico">📡</div>当前暂无关于 <b style="color:var(--text)">'+c.cn+'</b> 的最新金融资讯<br/>点击金色圆点查看金融中心动态</div>';
+  if(window.innerWidth<=900) openSide();
+}
+
+function loadMap(){
+  try{
+    if(!window.WORLD_GEO_JSON){ throw new Error('no-geo'); }
+    echarts.registerMap('world', window.WORLD_GEO_JSON);
+    mapLoaded=true; renderMap();
+    showOverview();
+  }catch(e){
+    document.getElementById('map').innerHTML='<div class="errbox">地图渲染失败：'+e.message+'</div>';
+  }
+}
+const searchInput=document.getElementById('searchInput'), suggest=document.getElementById('suggest');
+searchInput.addEventListener('input', function(){
+  const q=searchInput.value.trim().toLowerCase(); suggest.innerHTML='';
+  if(!q){ suggest.style.display='none'; return; }
+  const items=[];
+  Object.keys(COUNTRY).forEach(function(en){ const c=COUNTRY[en]; if(en.toLowerCase().indexOf(q)>=0 || c.cn.indexOf(q)>=0) items.push({kind:'country',key:en,cn:c.cn,en:en}); });
+  CITY_NODES.forEach(function(c){ if(c.cn.indexOf(q)>=0 || c.en.toLowerCase().indexOf(q)>=0) items.push({kind:'city',key:c.id,cn:c.cn,en:c.en}); });
+  if(!items.length){ suggest.style.display='none'; return; }
+  suggest.style.display='block';
+  suggest.innerHTML=items.slice(0,10).map(function(it){
+    const tag = it.kind==='city' ? '<span class="en" style="color:var(--gold)">金融中心</span>' : '<span class="en">'+it.en+'</span>';
+    return '<div data-kind="'+it.kind+'" data-key="'+it.key+'"><span>'+it.cn+'</span>'+tag+'</div>';
+  }).join('');
+  suggest.querySelectorAll('div').forEach(function(d){ d.addEventListener('click', function(){
+    if(d.dataset.kind==='city'){ const c=CITY_BY_ID[d.dataset.key]; searchInput.value=c.cn; suggest.style.display='none'; selectCity(c); }
+    else { searchInput.value=COUNTRY[d.dataset.key].cn; suggest.style.display='none'; selectCountry(d.dataset.key); }
+  }); });
+});
+document.addEventListener('click', function(e){ if(!e.target.closest('.search')) suggest.style.display='none'; });
+
+/* ===== 视图重置 ===== */
+function resetView(){ selectedName=null; showOverview(); renderMap(); }
+
+/* ===== 侧栏开关（移动端） ===== */
+function openSide(){ document.getElementById('side').classList.add('open'); document.getElementById('mask').classList.add('open'); }
+function closeSide(){ document.getElementById('side').classList.remove('open'); document.getElementById('mask').classList.remove('open'); }
+
+document.getElementById('resetBtn').addEventListener('click', resetView);
+document.getElementById('closeBtn').addEventListener('click', closeSide);
+document.getElementById('mask').addEventListener('click', closeSide);
+window.addEventListener('resize', function(){ if(mapLoaded) chart.resize(); });
+loadMap();
+</script>
+</body>
+</html>

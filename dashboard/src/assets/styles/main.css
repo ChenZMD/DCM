@@ -1,0 +1,184 @@
+@import 'tailwindcss';
+
+/* ============================================
+   深空蓝科技主题 - Design Tokens（升级版）
+   ============================================ */
+@theme {
+  --color-space-950: #050b14;
+  --color-space-900: #0a1628;
+  --color-space-850: #0d1f36;
+  --color-space-800: #102844;
+  --color-space-750: #13314f;
+  --color-space-700: #16344f;
+  --color-space-600: #1e3f5c;
+  --color-cyan-glow: #00d4ff;
+  --color-cyan-bright: #5cefff;
+  --color-cyan-soft: #38bdf8;
+  --color-blue-accent: #3b82f6;
+  --color-blue-deep: #1e40af;
+  --color-slate-line: #1f3a52;
+  --color-text-bright: #f0f8ff;
+  --color-text-dim: #8fb3d4;
+  --color-text-mute: #52708f;
+  --color-up: #22d3a8;
+  --color-down: #ff5c7c;
+  --color-warn: #fbbf24;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: var(--color-text-bright);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -10%, rgba(0, 212, 255, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 90% 70% at 85% 115%, rgba(59, 130, 246, 0.08) 0%, transparent 55%),
+    linear-gradient(rgba(0, 212, 255, 0.022) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, rgba(0, 212, 255, 0.022) 1px, transparent 1px) 0 0 / 44px 44px,
+    var(--color-space-950);
+  background-attachment: fixed;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 35, 60, 0.25);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(31, 58, 82, 0.9);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cyan-glow);
+}
+
+/* 通用面板/卡片 —— 玻璃拟态 + 顶部高光线 + 内发光 */
+.panel {
+  position: relative;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 212, 255, 0.10);
+  background: linear-gradient(158deg, rgba(18, 44, 74, 0.66) 0%, rgba(8, 18, 34, 0.86) 100%);
+  backdrop-filter: blur(14px) saturate(120%);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.55), transparent);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--color-text-bright);
+}
+.panel-title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--color-cyan-bright), var(--color-blue-accent));
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+}
+
+/* 发光边框 */
+.glow-border {
+  border-color: rgba(0, 212, 255, 0.28);
+  box-shadow: 0 0 24px rgba(0, 212, 255, 0.10), inset 0 0 22px rgba(0, 212, 255, 0.04);
+}
+
+/* 统一标签 chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  font-size: 9px;
+  line-height: 1.4;
+  border-radius: 6px;
+  color: var(--color-cyan-soft);
+  background: rgba(16, 40, 68, 0.6);
+  border: 1px solid rgba(31, 58, 82, 0.6);
+  white-space: nowrap;
+}
+
+/* LIVE 状态点 */
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-up);
+  box-shadow: 0 0 10px var(--color-up), 0 0 4px var(--color-up);
+  animation: pulse-glow 1.6s ease-in-out infinite;
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* 底部 ticker 滚动 */
+@keyframes ticker-scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-scroll 50s linear infinite;
+}
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+
+/* 入场动画 */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.45s ease-out both;
+}
+
+/* SVG 图标统一尺寸（项目锁定一套，禁止 emoji） */
+.icon {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* 链接 / 行悬停微动效 */
+.hover-lift {
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 212, 255, 0.35);
+  box-shadow: 0 6px 20px rgba(0, 212, 255, 0.10);
+}
