@@ -49,10 +49,59 @@
       z-index: 0;
     }
 
-    /* ===== 3D 地球画布（全屏） ===== */
+    /* ===== 顶部导航栏（悬浮） ===== */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      background: rgba(7, 17, 31, 0.6);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-100);
+      letter-spacing: -0.3px;
+    }
+    .nav-logo span { color: var(--cyan); }
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      font-size: 13px;
+      color: var(--text-300);
+    }
+    .nav-links a {
+      color: var(--text-300);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .nav-links a:hover { color: var(--cyan); }
+
+    /* ===== 双栏布局容器 ===== */
+    .layout {
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      width: 100%;
+      padding-top: 56px; /* 导航栏高度 */
+    }
+
+    /* ===== 左侧：3D 地球地图盒 ===== */
     .globe-wrap {
-      position: absolute;
-      inset: 0;
+      width: 60%;
+      height: 100%;
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--bg-800);
       z-index: 1;
     }
     #globeCanvas { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
@@ -61,7 +110,7 @@
     .globe-label {
       position: absolute;
       transform: translate(-50%, -150%);
-      font-size: 11.5px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-100);
       background: rgba(13,33,55,0.82);
@@ -80,45 +129,21 @@
       color: var(--text-300); font-size: 13px; text-align: center; padding: 24px;
     }
 
-    /* ===== 右侧新闻面板 ===== */
+    /* ===== 右侧：新闻面板 ===== */
     .news-panel {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 380px;
-      max-width: calc(100vw - 48px);
+      flex: 1;
       height: 100%;
       background: rgba(7, 17, 31, 0.75);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-left: 1px solid var(--border);
-      z-index: 20;
+      z-index: 5;
       padding: 24px 24px 40px;
       overflow-y: auto;
-      transform: translateX(105%);
-      transition: transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1);
-      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
-    }
-    .news-panel.visible { transform: translateX(0); }
-    .news-panel-close {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      width: 32px;
-      height: 32px;
-      border: 1px solid var(--border-soft);
-      border-radius: 8px;
-      background: rgba(142, 167, 192, 0.08);
-      color: var(--text-400);
-      cursor: pointer;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
+      flex-direction: column;
     }
-    .news-panel-close:hover { background: rgba(142, 167, 192, 0.18); color: var(--text-100); }
-    .news-panel-close svg { width: 16px; height: 16px; }
-    .news-panel-head { margin-bottom: 20px; padding-right: 36px; }
+    .news-panel-head { margin-bottom: 20px; }
     .news-panel-city { font-size: 22px; font-weight: 800; color: var(--text-100); letter-spacing: -0.3px; }
     .news-panel-meta {
       font-size: 12px; color: var(--text-400); margin-top: 4px;
@@ -170,32 +195,70 @@
     .news-tag.trade { background: rgba(54, 224, 160, 0.14); color: var(--ok); }
     .news-tag.resource { background: rgba(255, 170, 50, 0.14); color: var(--warn); }
 
+    /* ===== 底部操作提示 ===== */
+    .hint {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      font-size: 11px;
+      color: var(--text-400);
+      background: rgba(7, 17, 31, 0.6);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
     /* ===== 响应式 ===== */
+    @media (max-width: 1024px) {
+      .globe-wrap { width: 50%; }
+    }
     @media (max-width: 720px) {
-      .news-panel { width: 100%; max-width: 100%; }
+      .layout { flex-direction: column; padding-top: 48px; }
+      .globe-wrap { width: 100%; height: 50vh; border-radius: 0; }
+      .news-panel { height: 50vh; border-left: none; border-top: 1px solid var(--border); }
+      .hint { display: none; }
     }
   </style>
 </head>
 <body>
 
-  <!-- 3D 地球画布 -->
-  <div class="globe-wrap" id="globeWrap">
-    <canvas id="globeCanvas"></canvas>
-    <div class="globe-labels" id="globeLabels"></div>
-    <div class="globe-fallback" id="globeFallback" hidden>3D 地球初始化失败，请刷新页面重试</div>
+  <!-- 顶部导航栏 -->
+  <header class="nav">
+    <div class="nav-logo">大聪明<span>金融</span></div>
+    <nav class="nav-links">
+      <a href="#">核心能力</a>
+      <a href="#">量化维度</a>
+      <a href="#">预约接入</a>
+    </nav>
+  </header>
+
+  <!-- 双栏布局 -->
+  <div class="layout">
+    <!-- 左侧：3D 地球地图盒 -->
+    <div class="globe-wrap" id="globeWrap">
+      <canvas id="globeCanvas"></canvas>
+      <div class="globe-labels" id="globeLabels"></div>
+      <div class="globe-fallback" id="globeFallback" hidden>3D 地球初始化失败，请刷新页面重试</div>
+    </div>
+
+    <!-- 右侧：新闻面板 -->
+    <aside class="news-panel" id="newsPanel">
+      <div class="news-panel-head">
+        <div class="news-panel-city" id="newsPanelCity">--</div>
+        <div class="news-panel-meta" id="newsPanelMeta">--</div>
+      </div>
+      <div class="news-panel-list" id="newsPanelList"></div>
+    </aside>
   </div>
 
-  <!-- 右侧新闻面板 -->
-  <aside class="news-panel" id="newsPanel">
-    <button class="news-panel-close" id="newsPanelClose" aria-label="关闭面板">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-    </button>
-    <div class="news-panel-head">
-      <div class="news-panel-city" id="newsPanelCity">--</div>
-      <div class="news-panel-meta" id="newsPanelMeta">--</div>
-    </div>
-    <div class="news-panel-list" id="newsPanelList"></div>
-  </aside>
+  <!-- 底部操作提示 -->
+  <div class="hint">拖拽旋转 · 滚轮缩放 · 点击节点查看详情</div>
 
   <script src="vendor/three.min.js"></script>
   <script src="vendor/data/world.js"></script>
@@ -471,8 +534,8 @@
     let worldGeo = null;
     const GLOBE = {
       ready: false, inited: false,
-      scene: null, camera: null, renderer: null, globeGroup: null,
-      markers: [], dotMeshes: [], raycaster: null, pointer: null,
+      scene: null, camera: null, renderer: null, globeGroup: null, wrap: null,
+      markers: [], dotMeshes: [], hitMeshes: [], raycaster: null, pointer: null,
       arcs: [], isDragging: false, moved: false, autoRotate: true, R: 1,
     };
 
@@ -638,7 +701,7 @@
       }
       try {
         const wrap = document.getElementById('globeWrap');
-        const w = wrap.clientWidth || 600, h = wrap.clientHeight || 400;
+        const w = wrap.clientWidth || 720, h = wrap.clientHeight || 600;
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 100);
         camera.position.set(0, 0.4, 3.4);
@@ -693,7 +756,7 @@
         globeGroup.rotation.y = (170 * Math.PI) / 180;
         globeGroup.rotation.x = (30 * Math.PI) / 180;
 
-        const markers = [], dotMeshes = [];
+        const markers = [], dotMeshes = [], hitMeshes = [];
         const globeLabels = document.getElementById('globeLabels');
         MAP_NODES_DATA.forEach(n => {
           const pos = latLngToVector3(n.lat, n.lng, GLOBE.R * 1.012);
@@ -721,6 +784,17 @@
           globeLabels.appendChild(label);
 
           markers.push({ id: n.id, dot, ring, label, basePos: pos.clone(), phase: Math.random() * Math.PI * 2 });
+
+          // 透明大命中球：放大点击/触摸热区（可见小圆点半径仅 R*0.022，屏幕投影仅几像素，极难点中）
+          // 注意用 transparent+opacity:0 而非 visible:false，否则 Raycaster 会跳过不可见对象导致无法拾取
+          const hit = new THREE.Mesh(
+            new THREE.SphereGeometry(GLOBE.R * 0.06, 12, 12),
+            new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+          );
+          hit.position.copy(pos);
+          hit.userData.id = n.id;
+          globeGroup.add(hit);
+          hitMeshes.push(hit);
         });
 
         GLOBE.arcs = buildFlowArcs(globeGroup, GLOBE.R * 1.012);
@@ -738,7 +812,7 @@
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
         scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x2a4a66, size: 0.06, transparent: true, opacity: 0.7 })));
 
-        Object.assign(GLOBE, { scene, camera, renderer, globeGroup, markers, dotMeshes, raycaster: new THREE.Raycaster(), pointer: new THREE.Vector2() });
+        Object.assign(GLOBE, { scene, camera, renderer, globeGroup, wrap, markers, dotMeshes, hitMeshes, raycaster: new THREE.Raycaster(), pointer: new THREE.Vector2() });
         GLOBE.ready = true;
 
         bindGlobeEvents(canvas);
@@ -752,53 +826,128 @@
 
     function onGlobeResize() {
       if (!GLOBE.ready) return;
-      const wrap = document.getElementById('globeWrap');
-      const w = wrap.clientWidth || 600, h = wrap.clientHeight || 400;
+      const wrap = GLOBE.wrap;
+      const w = wrap.clientWidth || 720, h = wrap.clientHeight || 600;
       GLOBE.camera.aspect = w / h;
       GLOBE.camera.updateProjectionMatrix();
       GLOBE.renderer.setSize(w, h, false);
     }
 
+    /**
+     * 绑定 3D 地球的交互事件：拖拽旋转、滚轮缩放、点击/轻触节点查看详情。
+     * 交互状态统一维护在 GLOBE 上，供动画循环 animateGlobe() 读取（isDragging / autoRotate）。
+     *
+     * 已修正的历史缺陷：
+     *  1) touchend 时原代码读取 e.clientX（触摸事件无此字段，为 undefined），
+     *     导致触摸点拾取坐标 NaN；现统一从 changedTouches 取值。
+     *  2) 每次 mouseup 都新建一个 4s 定时器恢复自转，多次交互会堆叠；
+     *     现复用单个 resumeTimer 并在重置前 clearTimeout。
+     *  3) 拖拽/点击阈值原用曼哈顿距离（|dx|+|dy|），改为欧氏距离 Math.hypot，判定更贴合直觉。
+     */
     function bindGlobeEvents(canvas) {
+      // ---- 可调参数集中管理（便于统一调校手感） ----
+      const DRAG_THRESHOLD = 5;          // 位移阈值（px）：超过则判定为"拖拽"而非"点击"
+      const ROTATE_SPEED = 0.005;        // 拖拽旋转灵敏度
+      const ZOOM_SPEED = 0.002;          // 滚轮缩放灵敏度
+      const CAM_Z_MIN = 2.2;             // 相机视距下限（拉到最近）
+      const CAM_Z_MAX = 6;               // 相机视距上限（拉到最远）
+      const ROT_X_LIMIT = 1.0;           // 纬度旋转钳制，避免地球翻转
+      const AUTO_ROTATE_RESUME_MS = 4000;// 停止交互后恢复自转的延时
+
+      // 上一帧指针坐标（用于计算拖拽增量）
       let lastX = 0, lastY = 0;
-      const getXY = (e) => (e.touches && e.touches[0]) ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : { x: e.clientX, y: e.clientY };
-      const down = (e) => {
-        GLOBE.isDragging = true; GLOBE.moved = false; GLOBE.autoRotate = false;
-        const p = getXY(e); lastX = p.x; lastY = p.y; GLOBE.downX = p.x; GLOBE.downY = p.y;
+      // 按下时的坐标（用于计算累计位移是否超过点击阈值）
+      let downX = 0, downY = 0;
+      // 恢复自转的定时器句柄，避免多次交互堆叠
+      let resumeTimer = null;
+
+      /**
+       * 统一从鼠标 / 触摸事件中提取指针坐标。
+       * 注意：touchend 的触点坐标在 changedTouches 而非 touches / clientX 上。
+       */
+      const getPointer = (e) => {
+        if (e.touches && e.touches.length) {
+          return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+        if (e.changedTouches && e.changedTouches.length) {
+          return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+        }
+        return { x: e.clientX, y: e.clientY };
       };
-      const move = (e) => {
+
+      // 暂停自转并清掉待恢复定时器
+      const pauseAutoRotate = () => {
+        GLOBE.autoRotate = false;
+        if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+      };
+
+      // 安排一段时间后恢复自转（先清旧定时器，防止堆叠）
+      const scheduleAutoRotate = () => {
+        if (resumeTimer) clearTimeout(resumeTimer);
+        resumeTimer = setTimeout(() => { GLOBE.autoRotate = true; resumeTimer = null; }, AUTO_ROTATE_RESUME_MS);
+      };
+
+      // ---- 按下：进入"潜在拖拽"状态，暂停自转 ----
+      const onPointerDown = (e) => {
+        pauseAutoRotate();
+        GLOBE.isDragging = true;
+        GLOBE.moved = false;
+        const p = getPointer(e);
+        lastX = downX = p.x;
+        lastY = downY = p.y;
+      };
+
+      // ---- 移动：旋转地球（仅在拖拽中） ----
+      const onPointerMove = (e) => {
         if (!GLOBE.isDragging) return;
-        const p = getXY(e);
+        const p = getPointer(e);
         const dx = p.x - lastX, dy = p.y - lastY;
         lastX = p.x; lastY = p.y;
-        if (Math.abs(p.x - GLOBE.downX) + Math.abs(p.y - GLOBE.downY) > 5) GLOBE.moved = true;
-        GLOBE.globeGroup.rotation.y += dx * 0.005;
-        GLOBE.globeGroup.rotation.x += dy * 0.005;
-        GLOBE.globeGroup.rotation.x = Math.max(-1.0, Math.min(1.0, GLOBE.globeGroup.rotation.x));
+        // 累计位移超阈值即标记为"已拖动"，抬起时不再触发节点点击
+        if (Math.hypot(p.x - downX, p.y - downY) > DRAG_THRESHOLD) GLOBE.moved = true;
+        // 水平位移 → 经度旋转；垂直位移 → 纬度旋转（钳制防翻转）
+        GLOBE.globeGroup.rotation.y += dx * ROTATE_SPEED;
+        GLOBE.globeGroup.rotation.x = Math.max(-ROT_X_LIMIT, Math.min(ROT_X_LIMIT, GLOBE.globeGroup.rotation.x + dy * ROTATE_SPEED));
       };
-      const up = (e) => {
+
+      // ---- 抬起：未拖动则做射线拾取，命中节点则联动详情面板 ----
+      const onPointerUp = (e) => {
         if (GLOBE.isDragging && !GLOBE.moved) {
-          const p = getXY(e);
-          const rect = canvas.getBoundingClientRect();
-          GLOBE.pointer.x = ((p.x - rect.left) / rect.width) * 2 - 1;
-          GLOBE.pointer.y = -((p.y - rect.top) / rect.height) * 2 + 1;
-          GLOBE.raycaster.setFromCamera(GLOBE.pointer, GLOBE.camera);
-          const hits = GLOBE.raycaster.intersectObjects(GLOBE.dotMeshes, false);
-          if (hits.length) selectNode(hits[0].object.userData.id);
+          pickNode(e);
         }
         GLOBE.isDragging = false;
-        setTimeout(() => { GLOBE.autoRotate = true; }, 4000);
+        scheduleAutoRotate();
       };
-      canvas.addEventListener('mousedown', down);
-      window.addEventListener('mousemove', move);
-      window.addEventListener('mouseup', up);
-      canvas.addEventListener('touchstart', down, { passive: true });
-      canvas.addEventListener('touchmove', (e) => move(e), { passive: true });
-      canvas.addEventListener('touchend', up);
-      canvas.addEventListener('wheel', (e) => {
+
+      /**
+       * 用 Raycaster 从屏幕坐标反推命中的城市节点圆点。
+       * 命中后调用 selectNode(id) 触发右侧新闻面板刷新。
+       */
+      const pickNode = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const p = getPointer(e);
+        // 屏幕坐标 → 标准化设备坐标（NDC，范围 -1~1）
+        GLOBE.pointer.x = ((p.x - rect.left) / rect.width) * 2 - 1;
+        GLOBE.pointer.y = -((p.y - rect.top) / rect.height) * 2 + 1;
+        GLOBE.raycaster.setFromCamera(GLOBE.pointer, GLOBE.camera);
+        const hits = GLOBE.raycaster.intersectObjects(GLOBE.hitMeshes, false);
+        if (hits.length) selectNode(hits[0].object.userData.id);
+      };
+
+      // ---- 滚轮 / 双指：沿相机 Z 轴推进或拉远 ----
+      const onWheel = (e) => {
         e.preventDefault();
-        GLOBE.camera.position.z = Math.max(2.2, Math.min(6, GLOBE.camera.position.z + e.deltaY * 0.002));
-      }, { passive: false });
+        GLOBE.camera.position.z = Math.max(CAM_Z_MIN, Math.min(CAM_Z_MAX, GLOBE.camera.position.z + e.deltaY * ZOOM_SPEED));
+      };
+
+      // ---- 事件绑定（鼠标 + 触摸，统一走 pointer 逻辑） ----
+      canvas.addEventListener('mousedown', onPointerDown);
+      window.addEventListener('mousemove', onPointerMove);
+      window.addEventListener('mouseup', onPointerUp);
+      canvas.addEventListener('touchstart', onPointerDown, { passive: true });
+      canvas.addEventListener('touchmove', onPointerMove, { passive: true });
+      canvas.addEventListener('touchend', onPointerUp);
+      canvas.addEventListener('wheel', onWheel, { passive: false });
     }
 
     function animateGlobe() {
@@ -806,7 +955,7 @@
       requestAnimationFrame(animateGlobe);
       const t = performance.now() * 0.001;
       if (GLOBE.autoRotate && !GLOBE.isDragging) GLOBE.globeGroup.rotation.y += 0.0009;
-      const wrap = document.getElementById('globeWrap');
+      const wrap = GLOBE.wrap;
       const ww = wrap.clientWidth, wh = wrap.clientHeight;
       const camDir = GLOBE.camera.position.clone().normalize();
       GLOBE.markers.forEach(m => {
@@ -816,10 +965,12 @@
         m.ring.scale.setScalar(1 + 0.35 * pulse);
         m.ring.material.opacity = (active ? 0.9 : 0.5) * pulse;
         m.dot.scale.setScalar(active ? 1.9 : 1);
-        const v = new THREE.Vector3();
-        m.dot.getWorldPosition(v);
-        const proj = v.project(GLOBE.camera);
-        const behind = v.clone().normalize().dot(camDir) < 0.02;
+        // 先用世界坐标判断节点是否转到地球背面（背面标签需隐藏，避免穿透显示）
+        // 注意：必须先用世界坐标算 behind，再 project——project() 会原地改写向量为 NDC，
+        // 若先 project 再取 normalize 点积，会得到错误结果导致遮挡判断失效
+        const worldPos = m.dot.getWorldPosition(new THREE.Vector3());
+        const behind = worldPos.clone().normalize().dot(camDir) < 0.02;
+        const proj = worldPos.project(GLOBE.camera);
         m.label.style.left = ((proj.x * 0.5 + 0.5) * ww) + 'px';
         m.label.style.top = ((-proj.y * 0.5 + 0.5) * wh) + 'px';
         m.label.classList.toggle('hidden', behind);
@@ -839,18 +990,13 @@
 
     // ===== 右侧新闻面板 =====
     let activeNodeId = null;
-    let newsPanel, newsPanelCity, newsPanelMeta, newsPanelList, newsPanelClose;
+    let newsPanel, newsPanelCity, newsPanelMeta, newsPanelList;
 
     function initNewsPanel() {
       newsPanel = document.getElementById('newsPanel');
       newsPanelCity = document.getElementById('newsPanelCity');
       newsPanelMeta = document.getElementById('newsPanelMeta');
       newsPanelList = document.getElementById('newsPanelList');
-      newsPanelClose = document.getElementById('newsPanelClose');
-
-      if (newsPanelClose) {
-        newsPanelClose.addEventListener('click', closeNewsPanel);
-      }
     }
 
     function selectNode(nodeId) {
@@ -879,28 +1025,7 @@
           </div>
         </div>`;
       }).join('');
-
-      newsPanel.classList.add('visible');
     }
-
-    function closeNewsPanel() {
-      if (newsPanel) newsPanel.classList.remove('visible');
-    }
-
-    // 点击面板外部关闭（仅当点击地球区域时）
-    document.addEventListener('click', function(e) {
-      if (!newsPanel || !newsPanel.classList.contains('visible')) return;
-      if (newsPanel.contains(e.target)) return;
-      if (e.target.closest && e.target.closest('.map-node')) return;
-      if (e.target.closest && e.target.closest('#globeCanvas')) {
-        closeNewsPanel();
-      }
-    });
-
-    // ESC 关闭面板
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') closeNewsPanel();
-    });
 
     // 页面加载完成后自动初始化 3D 地球
     document.addEventListener('DOMContentLoaded', () => {
