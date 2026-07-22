@@ -116,14 +116,17 @@
     }
     @keyframes ripple { to { transform: scale(4); opacity: 0; } }
 
-    /* ===== 顶部导航 ===== */
+    /* ===== 顶部导航（悬浮毛玻璃） ===== */
     header.nav {
-      position: sticky;
+      position: absolute;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 50;
-      backdrop-filter: blur(14px);
-      background: rgba(7, 17, 31, 0.72);
-      border-bottom: 1px solid var(--border-soft);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      background: rgba(7, 17, 31, 0.55);
+      border-bottom: 1px solid rgba(0, 212, 255, 0.12);
     }
     .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
     .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text-100); font-size: 17px; letter-spacing: 0.5px; }
@@ -149,58 +152,25 @@
     /* ===== Hero ===== */
     .hero { position: relative; padding: 96px 0 80px; overflow: hidden; }
 
-    /* ===== Globe Hero：全幅 3D 地球 ===== */
+    /* ===== Globe Hero：全幅 3D 地球（沉浸式） ===== */
     .hero.globe-hero {
       position: relative;
-      min-height: 100vh;
-      min-height: 100svh;
+      width: 100vw;
+      height: 100vh;
+      height: 100svh;
+      margin: 0;
       padding: 0;
-      display: flex;
-      align-items: center;
       overflow: hidden;
+      background: #07111f;
     }
     .hero.globe-hero .globe-wrap {
       position: absolute;
       inset: 0;
-      z-index: 0;
+      z-index: 1;
     }
-    .hero.globe-hero .hero-overlay {
-      position: relative;
-      z-index: 2;
-      width: 100%;
-      padding: 120px 0 80px;
-      background: linear-gradient(180deg,
-        rgba(7,17,31,0.55) 0%,
-        rgba(7,17,31,0.25) 40%,
-        rgba(7,17,31,0.55) 100%);
-      pointer-events: none;
-    }
-    .hero.globe-hero .hero-overlay .wrap { pointer-events: auto; }
     .hero.globe-hero .hero-glow {
       z-index: 1;
       opacity: 0.35;
-    }
-    .hero.globe-hero .badge {
-      background: rgba(7,17,31,0.65);
-      backdrop-filter: blur(8px);
-      border-color: rgba(0,212,255,0.25);
-    }
-    .hero.globe-hero h1 {
-      text-shadow: 0 2px 20px rgba(7,17,31,0.8);
-    }
-    .hero.globe-hero p.sub {
-      text-shadow: 0 1px 12px rgba(7,17,31,0.7);
-      max-width: 560px;
-    }
-    .hero.globe-hero .hero-meta {
-      background: rgba(7,17,31,0.5);
-      backdrop-filter: blur(6px);
-      border-radius: 12px;
-      padding: 12px 20px;
-      display: inline-flex;
-      gap: 24px;
-      flex-wrap: wrap;
-      border: 1px solid rgba(0,212,255,0.1);
     }
     .hero.globe-hero .map-view-toggle.hero-toggle {
       position: absolute;
@@ -646,16 +616,187 @@
     .nt-score-val { font-size: 13px; font-weight: 700; color: var(--cyan); min-width: 32px; text-align: right; font-variant-numeric: tabular-nums; }
     .nt-desc { font-size: 12.5px; color: var(--text-300); line-height: 1.55; margin-top: 8px; }
 
+    /* ===== 右侧新闻面板 ===== */
+    .news-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 380px;
+      max-width: calc(100vw - 48px);
+      height: 100%;
+      background: rgba(7, 17, 31, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-left: 1px solid var(--border);
+      z-index: 20;
+      padding: 24px 24px 40px;
+      overflow-y: auto;
+      transform: translateX(105%);
+      transition: transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1);
+      box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+    }
+    .news-panel.visible {
+      transform: translateX(0);
+    }
+    .news-panel-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--border-soft);
+      border-radius: 8px;
+      background: rgba(142, 167, 192, 0.08);
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s var(--ease);
+    }
+    .news-panel-close:hover {
+      background: rgba(142, 167, 192, 0.18);
+      color: var(--text-100);
+    }
+    .news-panel-close svg { width: 16px; height: 16px; }
+    .news-panel-head {
+      margin-bottom: 20px;
+      padding-right: 36px;
+    }
+    .news-panel-city {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--text-100);
+      letter-spacing: -0.3px;
+    }
+    .news-panel-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .news-panel-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: rgba(255, 92, 124, 0.16);
+      color: var(--danger);
+    }
+    .news-panel-live .live-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--danger);
+      animation: pulse 1.2s ease-out infinite;
+    }
+    .news-panel-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .news-item {
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: rgba(142, 167, 192, 0.06);
+      border: 1px solid var(--border-soft);
+      cursor: pointer;
+      transition: all 0.22s var(--ease);
+    }
+    .news-item:hover {
+      background: rgba(0, 212, 255, 0.1);
+      border-color: var(--cyan);
+      transform: translateX(-3px);
+    }
+    .news-item .news-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-100);
+      line-height: 1.55;
+      margin-bottom: 6px;
+    }
+    .news-item .news-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .news-tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .news-tag.hot { background: rgba(255, 150, 100, 0.16); color: var(--warn); }
+    .news-tag.live { background: rgba(255, 92, 124, 0.18); color: var(--danger); }
+    .news-tag.policy { background: rgba(59, 130, 246, 0.14); color: #7da5e8; }
+    .news-tag.finance { background: rgba(59, 130, 246, 0.14); color: #7da5e8; }
+    .news-tag.industry { background: rgba(180, 160, 255, 0.14); color: #b4a0ff; }
+    .news-tag.energy { background: rgba(255, 170, 50, 0.14); color: var(--warn); }
+    .news-tag.alert { background: rgba(255, 92, 124, 0.18); color: var(--danger); }
+    .news-tag.update { background: rgba(54, 224, 160, 0.14); color: var(--ok); }
+    .news-tag.trade { background: rgba(54, 224, 160, 0.14); color: var(--ok); }
+    .news-tag.resource { background: rgba(255, 170, 50, 0.14); color: var(--warn); }
+
+    /* ===== 悬浮 CTA 按钮 ===== */
+    .floating-cta {
+      position: absolute;
+      bottom: 32px;
+      right: 32px;
+      z-index: 12;
+      padding: 14px 28px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 12px 40px rgba(0, 212, 255, 0.35), 0 4px 12px rgba(0, 0, 0, 0.4);
+      transition: all 0.3s var(--ease);
+    }
+    .floating-cta:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 50px rgba(0, 212, 255, 0.45), 0 6px 16px rgba(0, 0, 0, 0.4);
+    }
+
+    /* ===== 交互指引（底部中央） ===== */
+    .globe-hint {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: var(--text-300);
+      letter-spacing: 1px;
+      z-index: 6;
+      background: rgba(13, 33, 55, 0.65);
+      padding: 6px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
     /* 响应式：Globe Hero */
     @media (max-width: 1024px) {
-      .hero.globe-hero { min-height: 80svh; }
+      .hero.globe-hero { height: 100svh; }
     }
     @media (max-width: 720px) {
-      .hero.globe-hero { min-height: 70svh; }
+      .hero.globe-hero { height: 100svh; }
       .hero.globe-hero .map-legend { bottom: 8px; left: 8px; padding: 8px 10px; gap: 10px; }
       .hero.globe-hero .node-tooltip { bottom: 50px; left: 8px; right: 8px; min-width: unset; max-width: none; }
       .hero.globe-hero .map-view-toggle button { padding: 5px 10px; font-size: 11.5px; }
       .hero.globe-hero .map-view-toggle button svg { width: 13px; height: 13px; }
+      .floating-cta { bottom: 24px; right: 50%; transform: translateX(50%); padding: 12px 24px; font-size: 14px; }
+      .globe-hint { bottom: 80px; font-size: 11px; padding: 5px 12px; }
+      .news-panel { width: 100%; max-width: 100%; }
     }
   </style>
 </head>
@@ -693,13 +834,12 @@
     </div>
   </header>
 
-  <!-- Hero：全幅 3D 地球 + 文字叠加 -->
+  <!-- Hero：全屏沉浸式 3D 地球 -->
   <section class="hero globe-hero" id="top">
     <!-- 3D 地球画布（Three.js） -->
     <div class="globe-wrap" id="globeWrap">
       <canvas id="globeCanvas"></canvas>
       <div class="globe-labels" id="globeLabels"></div>
-      <div class="globe-hint">拖拽旋转 · 滚轮缩放 · 点击节点查看资讯</div>
       <div class="globe-fallback" id="globeFallback" hidden>3D 地球初始化失败，请刷新页面重试</div>
     </div>
 
@@ -708,27 +848,8 @@
       <iframe id="map2dIframe" src="world-map.html" title="全球资金流动 2D 地图" loading="lazy"></iframe>
     </div>
 
-    <!-- 文字叠加层 -->
-    <div class="hero-overlay">
-      <div class="hero-glow"></div>
-      <div class="wrap">
-        <span class="badge reveal"><span class="dot"></span>宏观 · 产业 · 地缘 多维量化引擎</span>
-        <h1 class="reveal d1">把<span class="accent">宏观混沌</span>变成<span class="accent">可量化的决策信号</span></h1>
-        <p class="sub reveal d2">大聪明金融看板覆盖政治、货币、产业、供应链、地缘、能源、自贸区、虚拟货币八大维度，为交易员与宏观研究员提供秒级更新的量化评分与逻辑推演，让每一笔配置都有数据支撑。</p>
-        <div class="hero-actions reveal d3">
-          <a href="#cta" class="btn btn-primary" data-ripple>
-            预约演示
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
-          <a href="#features" class="btn btn-ghost" data-ripple>了解核心能力</a>
-        </div>
-        <div class="hero-meta reveal d3">
-          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>秒级实时数据流</span>
-          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z"/><path d="M2 12h20M12 2a15 15 0 010 20M12 2a15 15 0 000 20"/></svg>八大维度统一评分</span>
-          <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>API 可动态注入</span>
-        </div>
-      </div>
-    </div>
+    <!-- 光晕背景 -->
+    <div class="hero-glow"></div>
 
     <!-- 3D / 2D 视图切换 -->
     <div class="map-view-toggle hero-toggle" id="mapViewToggle">
@@ -763,6 +884,27 @@
         <span class="nt-score-val" id="ntScoreVal">--</span>
       </div>
     </div>
+
+    <!-- 右侧新闻面板（点击城市节点后滑入） -->
+    <aside class="news-panel" id="newsPanel">
+      <button class="news-panel-close" id="newsPanelClose" aria-label="关闭面板">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="news-panel-head">
+        <div class="news-panel-city" id="newsPanelCity">--</div>
+        <div class="news-panel-meta" id="newsPanelMeta">--</div>
+      </div>
+      <div class="news-panel-list" id="newsPanelList"></div>
+    </aside>
+
+    <!-- 核心操作按钮（右下角） -->
+    <a href="#cta" class="btn btn-primary floating-cta" data-ripple id="floatingCta">
+      预约演示
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </a>
+
+    <!-- 交互指引（底部中央） -->
+    <div class="globe-hint">拖拽旋转 · 滚轮缩放 · 点击节点查看详情</div>
   </section>
 
   <!-- 数据指标 -->
@@ -1742,7 +1884,7 @@
     // 3D 地球节点由 initGlobe 生成，这里仅保留兼容占位
     function renderMapNodes() {}
 
-    // 选中节点 → 更新地图高亮 + 浮窗
+    // 选中节点 → 更新地图高亮 + 浮窗 + 右侧新闻面板
     function selectNode(nodeId) {
       const node = MAP_NODES_DATA.find(n => n.id === nodeId);
       if (!node) return;
@@ -1758,7 +1900,67 @@
       ntScoreFill.style.width = (node.score * 100) + '%';
       ntScoreVal.textContent = node.score.toFixed(2);
       nodeTooltip.classList.add('visible');
+
+      // 渲染右侧新闻面板
+      renderNewsPanel(node);
     }
+
+    // ===== 右侧新闻面板 =====
+    const newsPanel = document.getElementById('newsPanel');
+    const newsPanelCity = document.getElementById('newsPanelCity');
+    const newsPanelMeta = document.getElementById('newsPanelMeta');
+    const newsPanelList = document.getElementById('newsPanelList');
+    const newsPanelClose = document.getElementById('newsPanelClose');
+
+    function renderNewsPanel(node) {
+      if (!node.news || !node.news.length) return;
+      // 更新城市名 + 元信息
+      newsPanelCity.textContent = node.name;
+      const liveCount = node.news.filter(n => n.tags.includes('live')).length;
+      newsPanelMeta.innerHTML = `${node.region} · GFCI #${node.rank}${liveCount ? ` · <span class="news-panel-live"><span class="live-dot"></span>${liveCount} 直播中</span>` : ''}`;
+
+      // 渲染新闻列表
+      newsPanelList.innerHTML = node.news.map(item => {
+        const tag = item.tags && item.tags[0] || '';
+        const tagLabel = { hot:'热门', live:'直播', policy:'政策', finance:'金融', industry:'产业', energy:'能源', alert:'预警', update:'更新', trade:'贸易', resource:'资源' }[tag] || tag;
+        return `<div class="news-item">
+          <div class="news-title">${item.title}</div>
+          <div class="news-meta">
+            ${tagLabel ? `<span class="news-tag ${tag}">${tagLabel}</span>` : ''}
+            <span>${item.source}</span>
+            <span>${item.time}</span>
+          </div>
+        </div>`;
+      }).join('');
+
+      // 滑入面板
+      newsPanel.classList.add('visible');
+    }
+
+    function closeNewsPanel() {
+      newsPanel.classList.remove('visible');
+    }
+
+    if (newsPanelClose) {
+      newsPanelClose.addEventListener('click', closeNewsPanel);
+    }
+
+    // 点击面板外部关闭（仅当点击地球区域时）
+    document.addEventListener('click', function(e) {
+      if (!newsPanel.classList.contains('visible')) return;
+      // 如果点击的是新闻面板内部或节点，不关闭
+      if (newsPanel.contains(e.target)) return;
+      if (e.target.closest && e.target.closest('.map-node')) return;
+      if (e.target.closest && e.target.closest('#globeCanvas')) {
+        // 点击地球画布（非节点）→ 关闭面板
+        closeNewsPanel();
+      }
+    });
+
+    // ESC 关闭面板
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') closeNewsPanel();
+    });
 
     // 页面加载完成后自动初始化 3D 地球
     document.addEventListener('DOMContentLoaded', () => {
