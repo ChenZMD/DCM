@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>大聪明金融 · 全球资金流动可视化</title>
+<style>
+  :root{
+    --bg-1:#070d22; --bg-2:#0b1733; --bg-3:#101d3e;
+    --panel:rgba(15,25,52,0.72);
+    --border:rgba(120,160,220,0.16);
+    --text:#eaf1fb; --muted:#9fb2cc; --faint:#6f86a8;
+    --accent:#4fd1e3; --accent-2:#5b9bff; --gold:#ffd666;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--text);
+    background:radial-gradient(1200px 700px at 78% -10%, rgba(91,155,255,0.18), transparent 60%),
+               radial-gradient(900px 600px at 10% 110%, rgba(79,209,227,0.14), transparent 55%),
+               linear-gradient(160deg,var(--bg-1) 0%,var(--bg-2) 45%,var(--bg-3) 100%);
+    background-attachment:fixed; min-height:100vh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:30px 20px;
+  }
+  .card{
+    max-width:580px;width:100%;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:40px 36px;
+    backdrop-filter:blur(14px);
+    box-shadow:0 20px 60px rgba(0,0,0,0.45);
+    text-align:center;
+  }
+  .dot{width:14px;height:14px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px var(--accent);margin:0 auto 18px;}
+  h1{font-size:24px;font-weight:700;letter-spacing:.5px;margin-bottom:8px;}
+  .sub{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:30px;}
+  .links{display:flex;flex-direction:column;gap:12px;}
+  a{
+    display:flex;align-items:center;gap:12px;
+    padding:14px 18px;border-radius:12px;
+    border:1px solid var(--border);
+    background:rgba(10,18,38,0.6);
+    color:var(--text);text-decoration:none;font-size:14px;
+    transition:.2s;
+  }
+  a:hover{border-color:var(--accent);background:rgba(79,209,227,0.1);transform:translateY(-1px);}
+  a .ic{width:20px;height:20px;flex-shrink:0;}
+  a .tl{font-weight:600;}
+  a .ds{font-size:11px;color:var(--faint);margin-top:2px;}
+  .footer{margin-top:24px;font-size:11px;color:var(--faint);}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="dot"></div>
+    <h1>大聪明金融</h1>
+    <div class="sub">全球资金流动 · 宏观多维度量化可视化平台<br/>3D 地球与 2D 地图双视角联动</div>
+    <div class="links">
+      <a href="landing/index.html">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#4fd1e3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+        <div><div class="tl">3D 地球 · 全球金融中心</div><div class="ds">Three.js 实景渲染 · 20 个全球金融节点 · 3D/2D 切换</div></div>
+      </a>
+      <a href="landing/world-map.html">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#5b9bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M2 8h20"/><path d="M7 3v18"/></svg>
+        <div><div class="tl">2D 地图 · 可交互世界地图</div><div class="ds">ECharts 矢量地图 · 16 城金融节点 · 资金流向 · 新闻联动</div></div>
+      </a>
+      <a href="dashboard/index.html">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#ffd666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+        <div><div class="tl">量化看板 · 宏观多维分析</div><div class="ds">Vue3 + Vite + TypeScript · ECharts 图表 · Pinia 状态管理</div></div>
+      </a>
+    </div>
+    <div class="footer">© 2026 大聪明金融 · 数据可视化演示项目</div>
+  </div>
+</body>
+</html>
