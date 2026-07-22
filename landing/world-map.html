@@ -92,29 +92,12 @@
   /* 侧栏（新闻面板） */
   .side{
     width:372px;flex-shrink:0;border-left:1px solid var(--border);
-    background:rgba(8,14,32,0.5);padding:0;overflow-y:auto;display:flex;flex-direction:column;
+    background:rgba(8,14,32,0.5);padding:20px;overflow-y:auto;
   }
-  .side-hdr{padding:18px 20px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
-  .side-hdr h2{font-size:16px;margin-bottom:2px;color:#fff;display:flex;align-items:center;gap:8px;font-weight:700;}
-  .side-hdr .sub{font-size:11px;color:var(--faint);}
-  .news-list-wrap{flex:1;overflow-y:auto;padding:0;position:relative;}
-  .news-list{padding:0;}
-  .news-item{padding:14px 20px;border-bottom:1px solid rgba(120,160,220,0.1);cursor:pointer;transition:background .18s var(--ease);}
-  .news-item:hover{background:rgba(79,209,227,0.06);}
-  .news-item .tit{font-size:13px;color:var(--text);line-height:1.55;margin-bottom:6px;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-  .news-item .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--faint);}
-  .news-item .dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;}
-  .news-item .pri{font-size:10px;padding:1px 7px;border-radius:8px;background:rgba(255,150,100,0.16);color:var(--warn);}
-  .news-item .pri.high{background:rgba(255,90,90,0.2);color:#ff8a8a;}
-  .news-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 30px;text-align:center;color:var(--muted);font-size:13px;line-height:1.8;}
-  .news-empty .ico{width:36px;height:36px;border-radius:50%;background:rgba(120,160,220,0.12);display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:16px;color:var(--faint);}
+  .side h2{font-size:16px;margin-bottom:4px;color:#bfe6f5;display:flex;align-items:center;gap:8px;}
   /* 节点呼吸动画 */
   @keyframes nodePulse{0%{box-shadow:0 0 0 0 rgba(255,214,102,0.7);}70%{box-shadow:0 0 0 14px rgba(255,214,102,0);}100%{box-shadow:0 0 0 0 rgba(255,214,102,0);}}
   .node-pulse{animation:nodePulse 1.8s ease-out infinite;}
-  /* 列表过渡动画（CSS keyframes — 每次触发重播放） */
-  .news-list-animate{animation:newsSlideIn .35s cubic-bezier(0.22,0.61,0.36,1) both;}
-  @keyframes newsSlideIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 
   /* 排名榜 */
   .rank-title{font-size:13px;color:var(--muted);margin:18px 0 8px;display:flex;justify-content:space-between;align-items:center;}
@@ -186,11 +169,8 @@
 
   <aside class="side" id="side">
     <button class="close" id="closeBtn">&times;</button>
-    <div class="side-hdr">
-      <h2 id="sideTitle">全球概览</h2>
-      <div class="sub">点击金色圆点查看金融资讯</div>
-    </div>
-    <div class="news-list-wrap" id="sideBody"></div>
+    <h2 id="sideTitle">全球概览</h2>
+    <div id="sideBody"></div>
   </aside>
 </main>
 
@@ -485,106 +465,22 @@ function renderMap(){
   }
 }
 
-/* ===== 新闻 Mock 数据（6城 × 4-6条，含 priority 1-5 + time 分钟前 ===== */
-const NEWS_DATA = {
-  "纽约":[
-    {title:"美联储议息会议临近，华尔街对9月降息预期升至78%",time:5,priority:5},
-    {title:"纽交所科技股板块连续三日反弹，纳斯达克100创月内新高",time:12,priority:4},
-    {title:"纽约摩根大通发布Q3财报，净利润同比增长14%",time:30,priority:4},
-    {title:"华尔街投行上调美国大型银行股目标价，青睐高息差红利",time:55,priority:3},
-    {title:"纽约加密货币交易所交易量激增，比特币突破68000美元",time:90,priority:3},
-    {title:"曼哈顿商业地产Q2空置率微降至18.2%，租金企稳",time:180,priority:1}
-  ],
-  "伦敦":[
-    {title:"英国央行维持利率5.25%不变，释放11月降息信号",time:8,priority:5},
-    {title:"伦敦富时100指数收盘上涨0.8%，银行板块领涨",time:22,priority:4},
-    {title:"英格兰银行发布金融稳定报告，警告地缘政治风险",time:45,priority:4},
-    {title:"伦敦金属交易所铝库存降至历史新低，价格走高",time:75,priority:2},
-    {title:"英镑兑美元走强至1.29，受美降息预期推动",time:120,priority:2},
-    {title:"伦敦金融科技Q2融资额创欧洲纪录",time:240,priority:1}
-  ],
-  "上海":[
-    {title:"央行宣布降准0.5个百分点，释放长期流动性约1万亿元",time:3,priority:5},
-    {title:"A股三大指数收涨，沪指重上3200点关口",time:18,priority:4},
-    {title:"上海自贸区跨境人民币结算额同比增长35%",time:40,priority:4},
-    {title:"科创板做市商扩容至12家，流动性显著改善",time:65,priority:3},
-    {title:"陆家嘴金融城发布Q2全球资管机构净流入报告",time:150,priority:2},
-    {title:"上海楼市限购松绑首周，新房成交量环比涨18%",time:300,priority:1}
-  ],
-  "香港":[
-    {title:"金管局买入港元捍卫联系汇率，隔夜HIBOR急升",time:6,priority:5},
-    {title:"港股恒生指数大涨340点，科技指数反弹2.1%",time:25,priority:4},
-    {title:"港交所IPO回暖，三季度首批3家企业过会",time:50,priority:3},
-    {title:"香港家族办公室税收优惠落地半年，超150家落户",time:100,priority:3},
-    {title:"离岸人民币兑美元升破7.15关口",time:200,priority:2},
-    {title:"香港虚拟资产交易平台新增4家合规机构",time:360,priority:1}
-  ],
-  "深圳":[
-    {title:"深交所创业板改革试点注册制两周年，融资超5000亿",time:15,priority:4},
-    {title:"深圳前海跨境贷规模突破800亿元，同比增长28%",time:35,priority:4},
-    {title:"深圳创投圈Q2募资额领跑全国，硬科技赛道占七成",time:70,priority:3},
-    {title:"华为供应链金融平台落地前海，首批授信50亿元",time:130,priority:2},
-    {title:"深圳数字人民币试点扩围至跨境消费场景",time:280,priority:1}
-  ],
-  "东京":[
-    {title:"日本央行结束负利率时代，加息至0.25%",time:10,priority:5},
-    {title:"日经225指数突破42000点，创历史新高",time:28,priority:4},
-    {title:"日元汇率剧烈波动，美元兑日元一度跌破148",time:55,priority:4},
-    {title:"东京证券交易所推动公司治理改革，要求PB>1",time:90,priority:3},
-    {title:"日本三大银行Q1净利润齐增，海外业务贡献突出",time:160,priority:2},
-    {title:"东京数字资产交易所上线以太坊现货ETF",time:350,priority:1}
-  ]
-};
-
-/* ===== 新闻渲染（带动画过渡 + 防抖） ===== */
-let _newsTimer = null, _newsSeq = 0;
-function renderNews(cityName){
-  _newsSeq++;
-  var seq = _newsSeq;
-  var list = NEWS_DATA[cityName] || [];
-  var sideTitle = document.getElementById('sideTitle');
-  var sideBody = document.getElementById('sideBody');
-  // 排序：priority降序 > time升序（时间小的=新的在前）
-  var sorted = list.slice().sort(function(a,b){ return b.priority-a.priority || a.time-b.time; });
-  // 构建 HTML
-  var html = '';
-  if(sorted.length===0){
-    html = '<div class="news-empty"><div class="ico">!</div>当前暂无关于 <b style="color:var(--text)">'+cityName+'</b> 的最新金融资讯<br/>换个城市看看？</div>';
-  } else {
-    html = '<div class="news-list">' + sorted.map(function(n){
-      var priClass = n.priority>=4 ? 'pri high' : 'pri';
-      var priLabel = n.priority>=4 ? '重要' : (n.priority>=3 ? '关注' : '');
-      return '<div class="news-item"><div class="tit">'+n.title+'</div><div class="meta">'+
-        '<span class="dot"></span><span>'+n.time+'分钟前</span>'+
-        (priLabel?'<span '+priClass+'>'+priLabel+'</span>':'')+
-        '</div></div>';
-    }).join('') + '</div>';
-  }
-  // 防抖：延迟渲染，只渲染最后一次调用
-  clearTimeout(_newsTimer);
-  _newsTimer = setTimeout(function(){
-    if(seq !== _newsSeq) return;
-    sideTitle.textContent = cityName+' · 金融动态';
-    sideBody.innerHTML = html;
-    // 触发 CSS 动画重新播放
-    sideBody.classList.remove('news-list-animate');
-    void sideBody.offsetWidth;
-    sideBody.classList.add('news-list-animate');
-    sideBody.scrollTop = 0;
-  }, 180);
-}
-
 /* ===== 全球概览 ===== */
 function showOverview(){
   selectedName=null;
+  var totalFDI=0, totalGDP=0, cnt=0;
+  Object.keys(COUNTRY).forEach(function(en){ var c=COUNTRY[en]; if(c.fdi!=null) totalFDI+=c.fdi; if(c.gdp!=null) totalGDP+=c.gdp; cnt++; });
   document.getElementById('sideTitle').textContent='全球概览';
   document.getElementById('sideBody').innerHTML=
-    '<div class="news-empty"><div class="ico">G</div>点击地图上的金色圆点<br/>查看该城市最新金融资讯</div>'+
-    '<div style="padding:18px 20px 0">'+
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">热门金融城市</div>'+
-    CITY_NODES.slice(0,6).map(function(c){ return '<div class="news-item" data-id="'+c.id+'" style="padding:10px 0;border-bottom:1px solid rgba(120,160,220,0.08)"><div class="tit" style="font-size:12px;margin-bottom:0">'+c.cn+' <small style="color:var(--faint);font-size:10px">'+c.en+'</small></div></div>'; }).join('')+
-    '</div>';
-  document.querySelectorAll('.news-item[data-id]').forEach(function(el){
+    '<div class="placeholder">点击地图上的国家查看详细指标，或点击金色圆点查看全球金融中心城市。</div>'+
+    '<div class="stat-row"><span>覆盖国家</span><b>'+cnt+'</b></div>'+
+    '<div class="stat-row"><span>全球 FDI 净流入合计</span><b>'+fmtB(totalFDI)+'</b></div>'+
+    '<div class="stat-row"><span>全球 GDP 合计</span><b>'+totalGDP.toFixed(1)+' 万亿美元</b></div>'+
+    '<div class="stat-row"><span>金融中心节点</span><b>'+CITY_NODES.length+'</b></div>'+
+    '<div class="rank-title">全球金融中心 TOP 5 <span class="dim">GFCI 排名</span></div>'+
+    CITY_NODES.slice(0,5).map(function(c,i){ return '<div class="rank top'+(i+1)+'" data-id="'+c.id+'"><span class="no">'+(i+1)+'</span><span class="nm">'+c.cn+'<small>'+c.en+'</small></span><span class="val">#'+c.rank+'</span></div>'; }).join('')+
+    '<div class="src">数据来源：World Bank / IMF · GFCI 排名仅供参考</div>';
+  document.querySelectorAll('.rank').forEach(function(el){
     el.addEventListener('click', function(){ var c=CITY_BY_ID[el.dataset.id]; if(c) selectCity(c); });
   });
 }
@@ -592,10 +488,18 @@ function showOverview(){
 /* ===== 选中城市 ===== */
 function selectCity(c){
   selectedName=c.cn;
-  // 触发节点呼吸动画
-  chart.dispatchAction({type:'highlight',seriesType:'effectScatter',name:c.cn});
-  setTimeout(function(){ chart.dispatchAction({type:'downplay',seriesType:'effectScatter',name:c.cn}); }, 1800);
-  renderNews(c.cn);
+  document.getElementById('sideTitle').textContent=c.cn+' · 全球金融中心 #'+c.rank;
+  document.getElementById('sideBody').innerHTML=
+    '<div class="tag" style="display:inline-block;margin-bottom:10px">GFCI 排名 #'+c.rank+'</div>'+
+    '<div class="placeholder">'+c.desc+'</div>'+
+    '<div class="stat-row"><span>英文名</span><b>'+c.en+'</b></div>'+
+    '<div class="stat-row"><span>坐标</span><b>'+c.lat.toFixed(2)+'°, '+c.lng.toFixed(2)+'°</b></div>'+
+    '<div class="rank-title">全球金融中心排名 <span class="dim">TOP 10</span></div>'+
+    CITY_NODES.slice(0,10).map(function(n,i){ return '<div class="rank '+(n.id===c.id?'active':'')+' top'+(i+1)+'" data-id="'+n.id+'"><span class="no">'+(i+1)+'</span><span class="nm">'+n.cn+'<small>'+n.en+'</small></span><span class="val">#'+n.rank+'</span></div>'; }).join('')+
+    '<div class="src">GFCI 排名仅供参考</div>';
+  document.querySelectorAll('.rank').forEach(function(el){
+    el.addEventListener('click', function(){ var cc=CITY_BY_ID[el.dataset.id]; if(cc) selectCity(cc); });
+  });
   if(window.innerWidth<=900) openSide();
 }
 
@@ -603,8 +507,15 @@ function selectCity(c){
 function selectCountry(en){
   var c=COUNTRY[en]; if(!c) return;
   selectedName=c.cn;
-  document.getElementById('sideTitle').textContent = c.cn;
-  document.getElementById('sideBody').innerHTML = '<div class="news-empty"><div class="ico">📡</div>当前暂无关于 <b style="color:var(--text)">'+c.cn+'</b> 的最新金融资讯<br/>点击金色圆点查看金融中心动态</div>';
+  document.getElementById('sideTitle').textContent=c.cn;
+  document.getElementById('sideBody').innerHTML=
+    '<div class="tag" style="display:inline-block;margin-bottom:10px">'+CONT[c.cont].name+'</div>'+
+    (c.g20?'<div class="tag" style="display:inline-block;margin-bottom:10px;margin-left:6px">G20 成员</div>':'')+
+    '<div class="stat-row"><span>首都</span><b>'+c.cap+'</b></div>'+
+    '<div class="stat-row"><span>跨境资金净流入 (FDI)</span><b>'+fmtB(c.fdi)+'</b></div>'+
+    '<div class="stat-row"><span>经济总量 (GDP)</span><b>'+fmtT(c.gdp)+'</b></div>'+
+    '<div class="stat-row"><span>大洲</span><b>'+CONT[c.cont].name+'</b></div>'+
+    '<div class="src">数据来源：World Bank / IMF 2022 近似值</div>';
   if(window.innerWidth<=900) openSide();
 }
 
