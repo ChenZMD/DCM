@@ -315,7 +315,7 @@
     <div class="globe-wrap" id="globeWrap">
       <canvas id="globeCanvas"></canvas>
       <div class="globe-labels" id="globeLabels"></div>
-      <div class="globe-fallback" id="globeFallback" hidden>3D 地球初始化失败，请刷新页面重试</div>
+      <div class="globe-fallback" id="globeFallback" hidden></div>
     </div>
 
     <!-- 右侧：新闻面板 -->
@@ -842,9 +842,8 @@
       GLOBE.inited = true;
       worldGeo = (window.WORLD_GEO && window.WORLD_GEO.features) ? window.WORLD_GEO : null;
       const canvas = document.getElementById('globeCanvas');
-      const fallback = document.getElementById('globeFallback');
       if (!window.THREE || !canvas) {
-        if (fallback) { fallback.hidden = false; fallback.textContent = '当前环境不支持 WebGL，无法加载 3D 地球。'; }
+        console.error('[globe] WebGL/THREE unavailable, 3D earth disabled');
         return;
       }
       try {
@@ -976,7 +975,6 @@
         animateGlobe();
         window.addEventListener('resize', onGlobeResize);
       } catch (err) {
-        if (fallback) { fallback.hidden = false; fallback.textContent = '3D 地球初始化失败：' + (err && err.message ? err.message : err); }
         console.error('[globe] init failed', err);
       }
     }
