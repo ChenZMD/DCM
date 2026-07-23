@@ -255,6 +255,15 @@
 
     /* 城市实时时钟 */
     .city-clock { color: var(--text-200); font-weight: 600; }
+    /* 热点板块：副标题 / 重要度排名 / 演示数据 / 实时脉冲 */
+    .news-panel-sub { font-size: 11px; color: var(--text-400); margin-top: 2px; letter-spacing: 0.3px; }
+    .news-rank { font-size: 10px; font-weight: 700; color: var(--text-400); margin-right: 6px; }
+    .news-item.top { border-left: 2px solid var(--warn); }
+    .news-item.top .news-rank { color: var(--warn); }
+    .news-item.top1 .news-rank { color: var(--danger); }
+    .demo-pill { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: rgba(142,167,192,0.12); color: var(--text-400); }
+    .realtime-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: rgba(54,224,160,0.14); color: var(--ok); }
+    .realtime-pill .rt-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ok); animation: pulse 1.2s ease-out infinite; }
 
     /* ===== 底部操作提示 ===== */
     .hint {
@@ -322,10 +331,11 @@
     <aside class="news-panel" id="newsPanel">
       <div class="news-panel-head">
         <div class="news-panel-city" id="newsPanelCity">--</div>
+        <div class="news-panel-sub" id="newsPanelSub">金融热点 · 按重要度排序</div>
         <div class="news-panel-meta" id="newsPanelMeta">--</div>
       </div>
       <div class="news-panel-list" id="newsPanelList"></div>
-      <div class="news-panel-foot" id="newsPanelFoot">已加载全部最新资讯</div>
+      <div class="news-panel-foot" id="newsPanelFoot">演示数据</div>
     </aside>
   </div>
 
@@ -1242,13 +1252,15 @@
 
     // ===== 右侧新闻面板 =====
     let activeNodeId = null;
-    let newsPanel, newsPanelCity, newsPanelMeta, newsPanelList;
+    let newsPanel, newsPanelCity, newsPanelMeta, newsPanelList, newsPanelSub, newsPanelFoot;
 
     function initNewsPanel() {
       newsPanel = document.getElementById('newsPanel');
       newsPanelCity = document.getElementById('newsPanelCity');
       newsPanelMeta = document.getElementById('newsPanelMeta');
       newsPanelList = document.getElementById('newsPanelList');
+      newsPanelSub = document.getElementById('newsPanelSub');
+      newsPanelFoot = document.getElementById('newsPanelFoot');
     }
 
     function selectNode(nodeId) {
@@ -1287,6 +1299,7 @@
     // 切换城市：旧列表上移淡出 -> 刷新 -> 新列表下移淡入；reduced-motion 直接刷新
     function updateNews(node, animate) {
       renderNewsHeader(node);
+      updateFoot();
       if (!animate) { renderNewsList(node); return; }
       const list = newsPanelList;
       list.classList.add('leaving');
@@ -1299,21 +1312,73 @@
         requestAnimationFrame(() => list.classList.remove('entering'));
       }, 300);
     }
+    // 金融重要程度评分：标签权重 + 全球金融中心轻微加权(node.score)
+    const TAG_WEIGHT = { alert:5, hot:4, live:3, policy:3, finance:3, trade:2, energy:2, industry:2, resource:2, update:1 };
+    function newsImportance(item, node) {
+      let s = 0;
+      (item.tags || []).forEach(t => { s += (TAG_WEIGHT[t] || 1); });
+      if (node && typeof node.score === 'number') s += (node.score - 0.5) * 4; // 全球中心加权 ~ -0.04..+1.24
+      return s;
+    }
+    // 相对时间：'HH:MM' -> 'X分钟前' / 'X小时前'；'正在直播' 原样
+    function relTime(timeStr) {
+      if (!timeStr || timeStr.indexOf('直播') >= 0) return timeStr || '';
+      const m = /^(\d{1,2}):(\d{2})$/.exec(timeStr);
+      if (!m) return timeStr;
+      const itemMin = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+      let diff = new Date().getHours() * 60 + new Date().getMinutes() - itemMin;
+      if (diff < 0) diff = 0;
+      if (diff < 1) return '刚刚';
+      if (diff < 60) return diff + ' 分钟前';
+      return Math.floor(diff / 60) + ' 小时前';
+    }
     function renderNewsHeader(node) {
       if (!newsPanel) initNewsPanel();
       newsPanelCity.textContent = node.name;
+      if (newsPanelSub) newsPanelSub.textContent = '金融热点 · 按重要度排序';
       const liveCount = node.news.filter(n => n.tags.includes('live')).length;
-      newsPanelMeta.innerHTML = '<span class="city-clock">' + node.name + '时间 ' + cityTime(CITY_TZ[node.id]) + '</span><span>GFCI 全球金融中心排名 #' + node.rank + '</span>' + (liveCount ? '<span class="news-panel-live"><span class="live-dot"></span>' + liveCount + ' 直播中</span>' : '');
+      newsPanelMeta.innerHTML =
+        '<span class="city-clock">' + node.name + '时间 ' + cityTime(CITY_TZ[node.id]) + '</span>' +
+        '<span>GFCI 全球金融中心排名 #' + node.rank + '</span>' +
+        (liveCount ? '<span class="news-panel-live"><span class="live-dot"></span>' + liveCount + ' 直播中</span>' : '') +
+        '<span class="demo-pill">演示数据</span>' +
+        '<span class="realtime-pill"><span class="rt-dot"></span>实时</span>';
     }
     function renderNewsList(node) {
       if (!node.news || !node.news.length) { renderNewsListSkeleton(); return; }
-      newsPanelList.innerHTML = node.news.map(item => {
+      // 按金融重要程度降序排序（稳定排序，重要度相同保持原序）
+      const ranked = node.news
+        .map((it, i) => ({ it, i, imp: newsImportance(it, node) }))
+        .sort((a, b) => (b.imp - a.imp) || (a.i - b.i))
+        .map(x => x.it);
+      newsPanelList.innerHTML = ranked.map((item, idx) => {
         const tag = (item.tags && item.tags[0]) || '';
         const tagLabel = { hot:'热门', live:'直播', policy:'政策', finance:'金融', industry:'产业', energy:'能源', alert:'预警', update:'更新', trade:'贸易', resource:'资源' }[tag] || tag;
-        return '<div class="news-item"><div class="news-title">' + item.title + '</div><div class="news-meta">' + (tagLabel ? '<span class="news-tag ' + tag + '">' + tagLabel + '</span>' : '') + '<span>' + item.source + '</span><span>' + item.time + '</span></div></div>';
+        const rankCls = idx === 0 ? ' top top1' : (idx < 3 ? ' top' : '');
+        return '<div class="news-item' + rankCls + '">' +
+          '<div class="news-title"><span class="news-rank">#' + (idx + 1) + '</span>' + item.title + '</div>' +
+          '<div class="news-meta">' + (tagLabel ? '<span class="news-tag ' + tag + '">' + tagLabel + '</span>' : '') +
+          '<span>' + item.source + '</span>' +
+          '<span class="news-time" data-time="' + item.time + '">' + relTime(item.time) + '</span></div></div>';
       }).join('');
     }
+    // 实时刷新模拟：相对时间 + 最后更新戳（数据仍为演示样本，已明确标注）
+    function updateFoot() {
+      if (!newsPanelFoot) return;
+      const t = new Date();
+      const p = n => String(n).padStart(2, '0');
+      newsPanelFoot.textContent = '演示数据 · 最后更新 ' + p(t.getHours()) + ':' + p(t.getMinutes()) + ':' + p(t.getSeconds());
+    }
+    function tickHotspot() {
+      if (!newsPanelList) return;
+      newsPanelList.querySelectorAll('.news-time').forEach(el => {
+        const t = el.getAttribute('data-time');
+        if (t) el.textContent = relTime(t);
+      });
+      updateFoot();
+    }
     setInterval(tickClock, 1000);
+    setInterval(tickHotspot, 15000);
 
     // 页面加载完成后自动初始化 3D 地球
     document.addEventListener('DOMContentLoaded', () => {
