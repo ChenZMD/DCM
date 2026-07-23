@@ -627,7 +627,8 @@
 
     // ===== 交互手感参数（集中管理，便于统一调校） =====
     const MOTION = {
-      DRAG_THRESHOLD: 5,     // 位移阈值(px)：超过则判定为"拖拽"而非"点击"
+      DRAG_THRESHOLD: 10,    // 位移阈值(px)：超过则判定为"拖拽旋转"而非"点击"（放宽以容忍真人点击抖动）
+      DRAG_THRESHOLD_SOFT: 22, // 软阈值(px)：虽超 DRAG_THRESHOLD，但光标仍落在某节点上则仍视为点击
       ROTATE_SPEED: 0.005,   // 拖拽旋转灵敏度
       ZOOM_SPEED: 0.0016,    // 滚轮缩放步长（设定 targetZ，非直接改相机）
       ZOOM_EASE: 0.12,       // 相机视距缓动系数（越大越快贴合目标）
@@ -1049,7 +1050,11 @@
       };
 
       const onPointerUp = (e) => {
-        if (GLOBE.isDragging && !GLOBE.moved) pickNode(e);
+        const p = getPointer(e);
+        const movedDist = Math.hypot(p.x - downX, p.y - downY);
+        // 判定为“点击”而非“拖拽旋转”：位移很小，或虽略有移动但光标仍落在某节点上（容忍真人点击抖动）
+        const isClick = GLOBE.isDragging && (movedDist <= MOTION.DRAG_THRESHOLD || (movedDist <= MOTION.DRAG_THRESHOLD_SOFT && nodeUnderPointer(e)));
+        if (isClick) pickNode(e);
         GLOBE.isDragging = false;
         canvas.style.cursor = GLOBE.hoverId ? 'pointer' : 'grab';
         if (GLOBE.reducedMotion) { GLOBE.velX = GLOBE.velY = 0; }
@@ -1064,16 +1069,35 @@
         const hits = GLOBE.raycaster.intersectObjects(GLOBE.hitMeshes, false);
         if (!hits.length) return;
         const camDir = GLOBE.camera.position.clone().normalize();
+        const ray = GLOBE.raycaster.ray;
+        // 在正面半球命中里，选“节点中心到拾取射线垂直距离最小”的节点，
+        // 即用户真正指向的那个（解决伦敦/法兰克福等邻近节点命中球重叠误选）
+        let bestId = null, bestPerp = Infinity;
         for (const h of hits) {
           const wp = h.object.getWorldPosition(new THREE.Vector3());
-          if (wp.clone().normalize().dot(camDir) > 0) { // 仅正面半球，避免穿透误选
-            const id = h.object.userData.id;
-            selectNode(id);
-            const node = MAP_NODES_DATA.find(n => n.id === id);
-            if (node) flyToNode(node);
-            return;
-          }
+          if (wp.clone().normalize().dot(camDir) <= 0) continue; // 仅正面半球，避免穿透误选
+          const perp = ray.distanceToPoint(wp);
+          if (perp < bestPerp) { bestPerp = perp; bestId = h.object.userData.id; }
         }
+        if (!bestId) return;
+        selectNode(bestId);
+        const node = MAP_NODES_DATA.find(n => n.id === bestId);
+        if (node) flyToNode(node);
+      };
+
+      // 松开位置是否有正面节点（用于软阈值判定“点击”而非“拖拽”）
+      const nodeUnderPointer = (e) => {
+        const p = getPointer(e);
+        GLOBE.pointer.copy(toNDC(p));
+        GLOBE.raycaster.setFromCamera(GLOBE.pointer, GLOBE.camera);
+        const hits = GLOBE.raycaster.intersectObjects(GLOBE.hitMeshes, false);
+        if (!hits.length) return false;
+        const camDir = GLOBE.camera.position.clone().normalize();
+        for (const h of hits) {
+          const wp = h.object.getWorldPosition(new THREE.Vector3());
+          if (wp.clone().normalize().dot(camDir) > 0) return true;
+        }
+        return false;
       };
 
       const onWheel = (e) => {
