@@ -119,11 +119,12 @@
       border-radius: 6px;
       white-space: nowrap;
       box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-      transition: opacity .2s ease, background .2s ease, color .2s ease;
+      transition: background .2s ease, color .2s ease; /* 透明度/位移由动画帧驱动，不加 CSS 过渡以免抖动 */
       will-change: transform, left, top;
     }
     .globe-label.hidden { opacity: 0; }
     .globe-label.active { color: #06121f; background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,212,255,0.5); }
+    .globe-label.hover { color: var(--cyan); border-color: var(--cyan); }
     .globe-fallback {
       position: absolute; inset: 0; display: grid; place-items: center;
       color: var(--text-300); font-size: 13px; text-align: center; padding: 24px;
@@ -212,6 +213,13 @@
       border: 1px solid var(--border-soft);
       pointer-events: none;
       white-space: nowrap;
+    }
+
+    /* ===== 尊重"减少动态效果"系统偏好 ===== */
+    @media (prefers-reduced-motion: reduce) {
+      .news-item, .nav-links a { transition: none; }
+      .news-item:hover { transform: none; }
+      .news-panel-live .live-dot { animation: none; }
     }
 
     /* ===== 响应式 ===== */
@@ -534,10 +542,76 @@
     let worldGeo = null;
     const GLOBE = {
       ready: false, inited: false,
-      scene: null, camera: null, renderer: null, globeGroup: null, wrap: null,
+      scene: null, camera: null, renderer: null, globeGroup: null, wrap: null, canvas: null,
       markers: [], dotMeshes: [], hitMeshes: [], raycaster: null, pointer: null,
       arcs: [], isDragging: false, moved: false, autoRotate: true, R: 1,
+      // —— 交互动态状态（frontend-design 重构新增）——
+      velX: 0, velY: 0,              // 角速度：拖拽释放后的惯性滑动
+      targetZ: 3.4,                  // 缩放目标视距：滚轮设定、动画帧缓动逼近
+      hoverId: null, hoverNDC: null, // 悬停节点与待拾取屏幕坐标
+      fly: null, intro: null,        // Fly-to 聚焦动画 / 入场动画状态
+      reducedMotion: false, autoSpeed: 0, lastT: 0,
     };
+
+    // ===== 交互手感参数（集中管理，便于统一调校） =====
+    const MOTION = {
+      DRAG_THRESHOLD: 5,     // 位移阈值(px)：超过则判定为"拖拽"而非"点击"
+      ROTATE_SPEED: 0.005,   // 拖拽旋转灵敏度
+      ZOOM_SPEED: 0.0016,    // 滚轮缩放步长（设定 targetZ，非直接改相机）
+      ZOOM_EASE: 0.12,       // 相机视距缓动系数（越大越快贴合目标）
+      CAM_Z_MIN: 2.2, CAM_Z_MAX: 6,
+      ROT_X_LIMIT: 1.0,      // 纬度旋转钳制，避免地球翻转
+      FRICTION: 0.93,        // 惯性衰减系数（每帧乘以该值）
+      AUTO_RESUME_MS: 4000,  // 停止交互后恢复自转的延时
+      AUTO_BASE: 0.0011,     // 自转基础角速度
+      AUTO_EASE_IN: 0.03,    // 自转速度缓入系数（避免突兀启动）
+      FLY_MS: 750,           // Fly-to 聚焦动画时长
+      LABEL_FADE_START: 0.06,// 标签开始淡出的深度阈值（朝向背面）
+      LABEL_FADE_FULL: 0.26, // 标签完全不透明的深度阈值（正对相机）
+      HOVER_SCALE: 1.45,     // 悬停节点圆点放大倍数
+      VEL_EPS: 0.00015,      // 惯性速度下限：低于则停止惯性、交接自转
+    };
+
+    // ===== 交互层共享工具函数 =====
+    let resumeTimer = null;
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+    // 暂停自转并清掉待恢复定时器（避免多次交互堆叠）
+    function pauseAutoRotate() {
+      GLOBE.autoRotate = false;
+      if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+    }
+    // 安排一段时间后恢复自转（先清旧定时器，防止堆叠）
+    function scheduleAutoRotate() {
+      if (resumeTimer) clearTimeout(resumeTimer);
+      resumeTimer = setTimeout(() => { GLOBE.autoRotate = true; resumeTimer = null; }, MOTION.AUTO_RESUME_MS);
+    }
+
+    /**
+     * Fly-to 聚焦：将指定城市节点平滑旋转到正对相机的位置。
+     * 通过节点经纬度反解目标欧拉角（绕最近路径），用 easeInOutCubic 缓动。
+     * 尊重 prefers-reduced-motion：直接跳到目标，不做动画。
+     */
+    function flyToNode(node) {
+      if (!GLOBE.ready) return;
+      const base = latLngToVector3(node.lat, node.lng, 1).normalize();
+      let tRotY = Math.atan2(-base.x, base.z);
+      let tRotX = Math.atan2(base.y, Math.hypot(base.x, base.z));
+      const cur = GLOBE.globeGroup.rotation;
+      while (tRotY - cur.y > Math.PI) tRotY -= 2 * Math.PI;
+      while (tRotY - cur.y < -Math.PI) tRotY += 2 * Math.PI;
+      tRotX = Math.max(-MOTION.ROT_X_LIMIT, Math.min(MOTION.ROT_X_LIMIT, tRotX));
+      GLOBE.velX = GLOBE.velY = 0;
+      if (GLOBE.reducedMotion) {
+        GLOBE.globeGroup.rotation.y = tRotY;
+        GLOBE.globeGroup.rotation.x = tRotX;
+        scheduleAutoRotate();
+        return;
+      }
+      GLOBE.fly = { fromY: cur.y, fromX: cur.x, toY: tRotY, toX: tRotX, t: 0 };
+      pauseAutoRotate();
+    }
 
     function latLngToVector3(lat, lng, radius) {
       const phi = (90 - lat) * Math.PI / 180;
@@ -815,6 +889,15 @@
         Object.assign(GLOBE, { scene, camera, renderer, globeGroup, wrap, markers, dotMeshes, hitMeshes, raycaster: new THREE.Raycaster(), pointer: new THREE.Vector2() });
         GLOBE.ready = true;
 
+        // 交互层初始化：缩放目标、动效偏好、入场动画
+        GLOBE.targetZ = camera.position.z;
+        GLOBE.reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        if (!GLOBE.reducedMotion) {
+          GLOBE.intro = { t: 0 };
+          camera.position.z = MOTION.CAM_Z_MAX;   // 从远处推近
+          globeGroup.scale.setScalar(0.92);        // 微缩后放大归位
+        }
+
         bindGlobeEvents(canvas);
         animateGlobe();
         window.addEventListener('resize', onGlobeResize);
@@ -834,126 +917,107 @@
     }
 
     /**
-     * 绑定 3D 地球的交互事件：拖拽旋转、滚轮缩放、点击/轻触节点查看详情。
-     * 交互状态统一维护在 GLOBE 上，供动画循环 animateGlobe() 读取（isDragging / autoRotate）。
+     * 绑定 3D 地球的交互事件（frontend-design 重构版）。
+     * 设计目标：让交互"有重量、有呼吸"——拖拽带惯性、缩放带缓动、点击带聚焦、自转带缓入。
      *
-     * 已修正的历史缺陷：
-     *  1) touchend 时原代码读取 e.clientX（触摸事件无此字段，为 undefined），
-     *     导致触摸点拾取坐标 NaN；现统一从 changedTouches 取值。
-     *  2) 每次 mouseup 都新建一个 4s 定时器恢复自转，多次交互会堆叠；
-     *     现复用单个 resumeTimer 并在重置前 clearTimeout。
-     *  3) 拖拽/点击阈值原用曼哈顿距离（|dx|+|dy|），改为欧氏距离 Math.hypot，判定更贴合直觉。
+     * 五类交互：
+     *  1) 拖拽旋转：直接跟手旋转，并记录末帧角速度供释放后惯性滑动。
+     *  2) 滚轮缩放：设定目标视距 targetZ，由动画帧缓动逼近（非瞬时跳变）。
+     *  3) 点击/轻触拾取：5px 欧氏阈值区分拖拽与点击；射线只取朝向相机的正面节点，避免穿透误选。
+     *  4) 自转恢复：停手 4s 后经缓入曲线渐进恢复，而非速度突跳。
+     *  5) 悬停反馈：pointermove 记录 NDC，动画帧节流拾取，命中节点即放大高亮 + pointer 光标。
+     *
+     * 质量纪律：触摸坐标统一从 changedTouches 取；恢复定时器复用单例；尊重 prefers-reduced-motion。
      */
     function bindGlobeEvents(canvas) {
-      // ---- 可调参数集中管理（便于统一调校手感） ----
-      const DRAG_THRESHOLD = 5;          // 位移阈值（px）：超过则判定为"拖拽"而非"点击"
-      const ROTATE_SPEED = 0.005;        // 拖拽旋转灵敏度
-      const ZOOM_SPEED = 0.002;          // 滚轮缩放灵敏度
-      const CAM_Z_MIN = 2.2;             // 相机视距下限（拉到最近）
-      const CAM_Z_MAX = 6;               // 相机视距上限（拉到最远）
-      const ROT_X_LIMIT = 1.0;           // 纬度旋转钳制，避免地球翻转
-      const AUTO_ROTATE_RESUME_MS = 4000;// 停止交互后恢复自转的延时
+      GLOBE.canvas = canvas;
+      let lastX = 0, lastY = 0, downX = 0, downY = 0;
 
-      // 上一帧指针坐标（用于计算拖拽增量）
-      let lastX = 0, lastY = 0;
-      // 按下时的坐标（用于计算累计位移是否超过点击阈值）
-      let downX = 0, downY = 0;
-      // 恢复自转的定时器句柄，避免多次交互堆叠
-      let resumeTimer = null;
-
-      /**
-       * 统一从鼠标 / 触摸事件中提取指针坐标。
-       * 注意：touchend 的触点坐标在 changedTouches 而非 touches / clientX 上。
-       */
+      // 从鼠标/触摸事件统一提取指针坐标（touchend 坐标在 changedTouches）
       const getPointer = (e) => {
-        if (e.touches && e.touches.length) {
-          return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        }
-        if (e.changedTouches && e.changedTouches.length) {
-          return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
-        }
+        if (e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        if (e.changedTouches && e.changedTouches.length) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
         return { x: e.clientX, y: e.clientY };
       };
-
-      // 暂停自转并清掉待恢复定时器
-      const pauseAutoRotate = () => {
-        GLOBE.autoRotate = false;
-        if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
+      // 屏幕坐标 → 标准化设备坐标（NDC，-1~1）
+      const toNDC = (p) => {
+        const rect = canvas.getBoundingClientRect();
+        return new THREE.Vector2(
+          ((p.x - rect.left) / rect.width) * 2 - 1,
+          -((p.y - rect.top) / rect.height) * 2 + 1
+        );
       };
 
-      // 安排一段时间后恢复自转（先清旧定时器，防止堆叠）
-      const scheduleAutoRotate = () => {
-        if (resumeTimer) clearTimeout(resumeTimer);
-        resumeTimer = setTimeout(() => { GLOBE.autoRotate = true; resumeTimer = null; }, AUTO_ROTATE_RESUME_MS);
-      };
-
-      // ---- 按下：进入"潜在拖拽"状态，暂停自转 ----
       const onPointerDown = (e) => {
         pauseAutoRotate();
         GLOBE.isDragging = true;
         GLOBE.moved = false;
+        GLOBE.velX = GLOBE.velY = 0;
+        GLOBE.fly = null;
+        GLOBE.hoverId = null;
         const p = getPointer(e);
-        lastX = downX = p.x;
-        lastY = downY = p.y;
+        lastX = downX = p.x; lastY = downY = p.y;
+        canvas.style.cursor = 'grabbing';
       };
 
-      // ---- 移动：旋转地球（仅在拖拽中） ----
       const onPointerMove = (e) => {
-        if (!GLOBE.isDragging) return;
         const p = getPointer(e);
-        const dx = p.x - lastX, dy = p.y - lastY;
-        lastX = p.x; lastY = p.y;
-        // 累计位移超阈值即标记为"已拖动"，抬起时不再触发节点点击
-        if (Math.hypot(p.x - downX, p.y - downY) > DRAG_THRESHOLD) GLOBE.moved = true;
-        // 水平位移 → 经度旋转；垂直位移 → 纬度旋转（钳制防翻转）
-        GLOBE.globeGroup.rotation.y += dx * ROTATE_SPEED;
-        GLOBE.globeGroup.rotation.x = Math.max(-ROT_X_LIMIT, Math.min(ROT_X_LIMIT, GLOBE.globeGroup.rotation.x + dy * ROTATE_SPEED));
+        if (GLOBE.isDragging) {
+          const dx = p.x - lastX, dy = p.y - lastY;
+          lastX = p.x; lastY = p.y;
+          if (Math.hypot(p.x - downX, p.y - downY) > MOTION.DRAG_THRESHOLD) GLOBE.moved = true;
+          const ry = dx * MOTION.ROTATE_SPEED;
+          const rx = dy * MOTION.ROTATE_SPEED;
+          GLOBE.globeGroup.rotation.y += ry;
+          GLOBE.globeGroup.rotation.x = Math.max(-MOTION.ROT_X_LIMIT, Math.min(MOTION.ROT_X_LIMIT, GLOBE.globeGroup.rotation.x + rx));
+          GLOBE.velY = ry; GLOBE.velX = rx; // 记录末帧角速度 → 释放后惯性
+        } else {
+          GLOBE.hoverNDC = toNDC(p); // 交动画帧节流拾取，避免每次 move 都射线检测
+        }
       };
 
-      // ---- 抬起：未拖动则做射线拾取，命中节点则联动详情面板 ----
       const onPointerUp = (e) => {
-        if (GLOBE.isDragging && !GLOBE.moved) {
-          pickNode(e);
-        }
+        if (GLOBE.isDragging && !GLOBE.moved) pickNode(e);
         GLOBE.isDragging = false;
+        canvas.style.cursor = GLOBE.hoverId ? 'pointer' : 'grab';
+        if (GLOBE.reducedMotion) { GLOBE.velX = GLOBE.velY = 0; }
         scheduleAutoRotate();
       };
 
-      /**
-       * 用 Raycaster 从屏幕坐标反推命中的城市节点圆点。
-       * 命中后调用 selectNode(id) 触发右侧新闻面板刷新。
-       */
+      // 射线拾取正面半球节点 → 联动新闻面板 + Fly-to 聚焦
       const pickNode = (e) => {
-        const rect = canvas.getBoundingClientRect();
         const p = getPointer(e);
-        // 屏幕坐标 → 标准化设备坐标（NDC，范围 -1~1）
-        GLOBE.pointer.x = ((p.x - rect.left) / rect.width) * 2 - 1;
-        GLOBE.pointer.y = -((p.y - rect.top) / rect.height) * 2 + 1;
+        GLOBE.pointer.copy(toNDC(p));
         GLOBE.raycaster.setFromCamera(GLOBE.pointer, GLOBE.camera);
         const hits = GLOBE.raycaster.intersectObjects(GLOBE.hitMeshes, false);
         if (!hits.length) return;
-        // 只选取朝向相机（正面半球）的节点：命中球是透明球，射线会穿透不透明的地球
-        // 命中到背面节点；若不过滤，点地球正面可能误选中藏在背面的城市（东亚密集区尤易点错）
         const camDir = GLOBE.camera.position.clone().normalize();
         for (const h of hits) {
           const wp = h.object.getWorldPosition(new THREE.Vector3());
-          if (wp.clone().normalize().dot(camDir) > 0) {
-            selectNode(h.object.userData.id);
+          if (wp.clone().normalize().dot(camDir) > 0) { // 仅正面半球，避免穿透误选
+            const id = h.object.userData.id;
+            selectNode(id);
+            const node = MAP_NODES_DATA.find(n => n.id === id);
+            if (node) flyToNode(node);
             return;
           }
         }
       };
 
-      // ---- 滚轮 / 双指：沿相机 Z 轴推进或拉远 ----
       const onWheel = (e) => {
         e.preventDefault();
-        GLOBE.camera.position.z = Math.max(CAM_Z_MIN, Math.min(CAM_Z_MAX, GLOBE.camera.position.z + e.deltaY * ZOOM_SPEED));
+        GLOBE.targetZ = Math.max(MOTION.CAM_Z_MIN, Math.min(MOTION.CAM_Z_MAX, GLOBE.targetZ + e.deltaY * MOTION.ZOOM_SPEED));
       };
 
-      // ---- 事件绑定（鼠标 + 触摸，统一走 pointer 逻辑） ----
+      const onLeave = () => {
+        GLOBE.hoverId = null;
+        if (!GLOBE.isDragging) canvas.style.cursor = 'grab';
+      };
+
       canvas.addEventListener('mousedown', onPointerDown);
       window.addEventListener('mousemove', onPointerMove);
       window.addEventListener('mouseup', onPointerUp);
+      canvas.addEventListener('mouseleave', onLeave);
       canvas.addEventListener('touchstart', onPointerDown, { passive: true });
       canvas.addEventListener('touchmove', onPointerMove, { passive: true });
       canvas.addEventListener('touchend', onPointerUp);
@@ -963,30 +1027,101 @@
     function animateGlobe() {
       if (!GLOBE.ready) return;
       requestAnimationFrame(animateGlobe);
-      const t = performance.now() * 0.001;
-      if (GLOBE.autoRotate && !GLOBE.isDragging) GLOBE.globeGroup.rotation.y += 0.0009;
+      const now = performance.now();
+      const dt = Math.min(50, now - (GLOBE.lastT || now));
+      GLOBE.lastT = now;
+      const t = now * 0.001;
+
+      // —— 入场动画：相机视距由远推近 + 地球微缩放大归位 ——
+      if (GLOBE.intro) {
+        GLOBE.intro.t += dt;
+        GLOBE.camera.position.z = lerp(GLOBE.camera.position.z, GLOBE.targetZ, 0.06);
+        const s = lerp(GLOBE.globeGroup.scale.x, 1, 0.06);
+        GLOBE.globeGroup.scale.setScalar(s);
+        if (Math.abs(GLOBE.camera.position.z - GLOBE.targetZ) < 0.01 && s > 0.995) {
+          GLOBE.camera.position.z = GLOBE.targetZ;
+          GLOBE.globeGroup.scale.setScalar(1);
+          GLOBE.intro = null;
+        }
+      }
+
+      // —— Fly-to 聚焦动画：缓动将节点转到正对相机 ——
+      if (GLOBE.fly) {
+        GLOBE.fly.t += dt;
+        const k = Math.min(1, GLOBE.fly.t / MOTION.FLY_MS);
+        const e = easeInOutCubic(k);
+        GLOBE.globeGroup.rotation.y = lerp(GLOBE.fly.fromY, GLOBE.fly.toY, e);
+        GLOBE.globeGroup.rotation.x = lerp(GLOBE.fly.fromX, GLOBE.fly.toX, e);
+        if (k >= 1) { GLOBE.fly = null; scheduleAutoRotate(); }
+      } else if (!GLOBE.isDragging) {
+        // —— 惯性滑动：释放后按末帧角速度继续，摩擦衰减 ——
+        if (Math.abs(GLOBE.velY) > MOTION.VEL_EPS || Math.abs(GLOBE.velX) > MOTION.VEL_EPS) {
+          GLOBE.globeGroup.rotation.y += GLOBE.velY;
+          GLOBE.globeGroup.rotation.x = Math.max(-MOTION.ROT_X_LIMIT, Math.min(MOTION.ROT_X_LIMIT, GLOBE.globeGroup.rotation.x + GLOBE.velX));
+          GLOBE.velY *= MOTION.FRICTION;
+          GLOBE.velX *= MOTION.FRICTION;
+        } else {
+          GLOBE.velX = GLOBE.velY = 0;
+          // —— 自转：速度缓入，避免突兀启动；reduced-motion 下完全关闭 ——
+          if (GLOBE.autoRotate && !GLOBE.reducedMotion) {
+            GLOBE.autoSpeed = lerp(GLOBE.autoSpeed, MOTION.AUTO_BASE, MOTION.AUTO_EASE_IN);
+            GLOBE.globeGroup.rotation.y += GLOBE.autoSpeed;
+          } else {
+            GLOBE.autoSpeed = lerp(GLOBE.autoSpeed, 0, 0.1);
+          }
+        }
+      }
+
+      // —— 缩放：相机视距缓动逼近 targetZ ——
+      GLOBE.camera.position.z = lerp(GLOBE.camera.position.z, GLOBE.targetZ, MOTION.ZOOM_EASE);
+
+      // —— 悬停拾取（每帧最多一次，由 onPointerMove 设置 NDC）——
+      if (GLOBE.hoverNDC && !GLOBE.isDragging && !GLOBE.fly) {
+        GLOBE.raycaster.setFromCamera(GLOBE.hoverNDC, GLOBE.camera);
+        const hits = GLOBE.raycaster.intersectObjects(GLOBE.hitMeshes, false);
+        const camDir = GLOBE.camera.position.clone().normalize();
+        let found = null;
+        for (const h of hits) {
+          const wp = h.object.getWorldPosition(new THREE.Vector3());
+          if (wp.clone().normalize().dot(camDir) > 0) { found = h.object.userData.id; break; }
+        }
+        GLOBE.hoverId = found;
+        GLOBE.canvas.style.cursor = found ? 'pointer' : 'grab';
+        GLOBE.hoverNDC = null;
+      }
+
+      // —— 节点呼吸 + 标签深度淡出 + 悬停/选中高亮 ——
       const wrap = GLOBE.wrap;
       const ww = wrap.clientWidth, wh = wrap.clientHeight;
       const camDir = GLOBE.camera.position.clone().normalize();
       GLOBE.markers.forEach(m => {
-        const active = m.id === activeNodeId;
-        const speed = active ? 3.2 : 1.6;
+        const isActive = m.id === activeNodeId;
+        const isHover = m.id === GLOBE.hoverId;
+        const isDim = !!(GLOBE.hoverId && !isHover && !isActive); // 悬停他人时弱化其余
+        const speed = isActive ? 3.2 : 1.6;
         const pulse = 0.5 + 0.5 * Math.sin(t * speed + m.phase);
-        m.ring.scale.setScalar(1 + 0.35 * pulse);
-        m.ring.material.opacity = (active ? 0.9 : 0.5) * pulse;
-        m.dot.scale.setScalar(active ? 1.9 : 1);
-        // 先用世界坐标判断节点是否转到地球背面（背面标签需隐藏，避免穿透显示）
-        // 注意：必须先用世界坐标算 behind，再 project——project() 会原地改写向量为 NDC，
-        // 若先 project 再取 normalize 点积，会得到错误结果导致遮挡判断失效
+        const ringBase = isActive ? 1.1 : isHover ? 1.12 : 1;
+        m.ring.scale.setScalar(ringBase * (1 + 0.35 * pulse));
+        m.ring.material.opacity = (isActive ? 0.9 : isHover ? 0.8 : 0.5) * pulse * (isDim ? 0.4 : 1);
+        m.dot.scale.setScalar(isActive ? 1.9 : isHover ? MOTION.HOVER_SCALE : 1);
+
         const worldPos = m.dot.getWorldPosition(new THREE.Vector3());
-        const behind = worldPos.clone().normalize().dot(camDir) < 0.02;
+        const d = worldPos.clone().normalize().dot(camDir); // +1 正对相机
         const proj = worldPos.project(GLOBE.camera);
         m.label.style.left = ((proj.x * 0.5 + 0.5) * ww) + 'px';
         m.label.style.top = ((-proj.y * 0.5 + 0.5) * wh) + 'px';
-        m.label.classList.toggle('hidden', behind);
-        m.label.classList.toggle('active', active);
+        // 深度淡出：朝边缘/背面的标签平滑消失（非硬切），并随深度轻微缩放制造视差
+        let op = d > MOTION.LABEL_FADE_FULL ? 1 : d < MOTION.LABEL_FADE_START ? 0
+          : (d - MOTION.LABEL_FADE_START) / (MOTION.LABEL_FADE_FULL - MOTION.LABEL_FADE_START);
+        if (isDim) op *= 0.45;
+        m.label.style.opacity = op.toFixed(3);
+        const sc = 0.82 + 0.22 * Math.max(0, d);
+        m.label.style.transform = `translate(-50%, -150%) scale(${sc.toFixed(3)})`;
+        m.label.classList.toggle('active', isActive);
+        m.label.classList.toggle('hover', isHover);
       });
-      // 流动光弧的彗星点沿线移动
+
+      // 流动光弧彗星点沿线移动
       if (GLOBE.arcs) {
         for (let i = 0; i < GLOBE.arcs.length; i++) {
           const a = GLOBE.arcs[i];
