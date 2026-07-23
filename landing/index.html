@@ -931,7 +931,17 @@
         GLOBE.pointer.y = -((p.y - rect.top) / rect.height) * 2 + 1;
         GLOBE.raycaster.setFromCamera(GLOBE.pointer, GLOBE.camera);
         const hits = GLOBE.raycaster.intersectObjects(GLOBE.hitMeshes, false);
-        if (hits.length) selectNode(hits[0].object.userData.id);
+        if (!hits.length) return;
+        // 只选取朝向相机（正面半球）的节点：命中球是透明球，射线会穿透不透明的地球
+        // 命中到背面节点；若不过滤，点地球正面可能误选中藏在背面的城市（东亚密集区尤易点错）
+        const camDir = GLOBE.camera.position.clone().normalize();
+        for (const h of hits) {
+          const wp = h.object.getWorldPosition(new THREE.Vector3());
+          if (wp.clone().normalize().dot(camDir) > 0) {
+            selectNode(h.object.userData.id);
+            return;
+          }
+        }
       };
 
       // ---- 滚轮 / 双指：沿相机 Z 轴推进或拉远 ----
