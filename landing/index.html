@@ -124,6 +124,31 @@
     }
     .globe-label.hidden { opacity: 0; }
     .globe-label.active { color: #06121f; background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 14px rgba(0,212,255,0.5); }
+
+    /* 地球外缘科技感呼吸光环（仅内描边，不被 overflow:hidden 裁切） */
+    .globe-wrap::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 212, 255, 0.32);
+      box-shadow:
+        inset 0 0 26px rgba(0, 212, 255, 0.14),
+        inset 0 0 60px rgba(0, 212, 255, 0.07);
+      pointer-events: none;
+      z-index: 8;
+      animation: ringBreath 4.5s ease-in-out infinite;
+    }
+    @keyframes ringBreath {
+      0%, 100% {
+        box-shadow: inset 0 0 22px rgba(0, 212, 255, 0.12), inset 0 0 46px rgba(0, 212, 255, 0.05);
+        border-color: rgba(0, 212, 255, 0.26);
+      }
+      50% {
+        box-shadow: inset 0 0 38px rgba(0, 212, 255, 0.28), inset 0 0 82px rgba(0, 212, 255, 0.13);
+        border-color: rgba(0, 212, 255, 0.5);
+      }
+    }
     .globe-label.hover { color: var(--cyan); border-color: var(--cyan); }
     .globe-fallback {
       position: absolute; inset: 0; display: grid; place-items: center;
@@ -196,6 +221,41 @@
     .news-tag.trade { background: rgba(54, 224, 160, 0.14); color: var(--ok); }
     .news-tag.resource { background: rgba(255, 170, 50, 0.14); color: var(--warn); }
 
+    /* 新闻列表切换动效 */
+    .news-panel-list { transition: opacity 0.3s ease, transform 0.3s ease; }
+    .news-panel-list.leaving { opacity: 0; transform: translateY(-8px); }
+    .news-panel-list.entering { opacity: 0; transform: translateY(8px); }
+
+    /* 页脚：已加载全部资讯 */
+    .news-panel-foot {
+      margin-top: 18px; text-align: center; font-size: 11px;
+      color: var(--text-400); letter-spacing: 1px;
+    }
+    .news-panel-foot::before, .news-panel-foot::after {
+      content: ""; display: inline-block; width: 22px; height: 1px;
+      background: var(--border-soft); vertical-align: middle; margin: 0 10px;
+    }
+
+    /* 骨架屏占位 */
+    .skeleton-item {
+      padding: 14px 16px; border-radius: 10px;
+      background: rgba(142, 167, 192, 0.06);
+      border: 1px solid var(--border-soft);
+      margin-bottom: 8px;
+    }
+    .skeleton-line {
+      height: 10px; border-radius: 5px; margin-bottom: 8px;
+      background: linear-gradient(90deg, rgba(142,167,192,0.10) 25%, rgba(142,167,192,0.22) 37%, rgba(142,167,192,0.10) 63%);
+      background-size: 400% 100%;
+      animation: skeletonShimmer 1.2s ease-in-out infinite;
+    }
+    .skeleton-line.short { width: 55%; }
+    .skeleton-line:last-child { margin-bottom: 0; }
+    @keyframes skeletonShimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+
+    /* 城市实时时钟 */
+    .city-clock { color: var(--text-200); font-weight: 600; }
+
     /* ===== 底部操作提示 ===== */
     .hint {
       position: fixed;
@@ -220,6 +280,9 @@
       .news-item, .nav-links a { transition: none; }
       .news-item:hover { transform: none; }
       .news-panel-live .live-dot { animation: none; }
+      .news-panel-list { transition: none; }
+      .globe-wrap::after { animation: none; }
+      .skeleton-line { animation: none; }
     }
 
     /* ===== 响应式 ===== */
@@ -262,6 +325,7 @@
         <div class="news-panel-meta" id="newsPanelMeta">--</div>
       </div>
       <div class="news-panel-list" id="newsPanelList"></div>
+      <div class="news-panel-foot" id="newsPanelFoot">已加载全部最新资讯</div>
     </aside>
   </div>
 
@@ -537,6 +601,14 @@
 
     // 类型映射中文
     const TYPE_LABELS = { policy:'政策中心', finance:'金融枢纽', energy:'能源港口', geo:'地缘热点', trade:'自贸区', industry:'产业基地', resource:'资源枢纽' };
+    const CITY_TZ = {
+      beijing:'Asia/Shanghai', shanghai:'Asia/Shanghai', guangzhou:'Asia/Shanghai', chengdu:'Asia/Shanghai',
+      xian:'Asia/Shanghai', shenzhen:'Asia/Shanghai', hongkong:'Asia/Hong_Kong',
+      singapore:'Asia/Singapore', tokyo:'Asia/Tokyo', mumbai:'Asia/Kolkata', dubai:'Asia/Dubai',
+      sydney:'Australia/Sydney', newyork:'America/New_York', london:'Europe/London',
+      sanfrancisco:'America/Los_Angeles', chicago:'America/Chicago', frankfurt:'Europe/Berlin',
+      zurich:'Europe/Zurich', paris:'Europe/Paris', toronto:'America/Toronto',
+    };
 
     // ===== 3D 地球（Three.js） =====
     let worldGeo = null;
@@ -549,7 +621,7 @@
       velX: 0, velY: 0,              // 角速度：拖拽释放后的惯性滑动
       targetZ: 3.4,                  // 缩放目标视距：滚轮设定、动画帧缓动逼近
       hoverId: null, hoverNDC: null, // 悬停节点与待拾取屏幕坐标
-      fly: null, intro: null,        // Fly-to 聚焦动画 / 入场动画状态
+      fly: null, intro: null, selectPulse: null, // Fly-to 聚焦动画 / 入场动画状态 / 选中光圈脉冲
       reducedMotion: false, autoSpeed: 0, lastT: 0,
     };
 
@@ -569,7 +641,9 @@
       LABEL_FADE_START: 0.06,// 标签开始淡出的深度阈值（朝向背面）
       LABEL_FADE_FULL: 0.26, // 标签完全不透明的深度阈值（正对相机）
       HOVER_SCALE: 1.45,     // 悬停节点圆点放大倍数
-      VEL_EPS: 0.00015,      // 惯性速度下限：低于则停止惯性、交接自转
+      VEL_EPS: 0.00015,       // 惯性速度下限：低于则停止惯性、交接自转
+      CAM_Z_FOCUS: 3.0,        // 点击节点时的轻微推近聚焦视距
+      SELECT_PULSE_MS: 700,    // 选中光圈脉冲时长
     };
 
     // ===== 交互层共享工具函数 =====
@@ -827,7 +901,7 @@
         scene.add(atmo);
 
         // 初始视角自动对准亚洲
-        globeGroup.rotation.y = (170 * Math.PI) / 180;
+        globeGroup.rotation.y = (41 * Math.PI) / 180;
         globeGroup.rotation.x = (30 * Math.PI) / 180;
 
         const markers = [], dotMeshes = [], hitMeshes = [];
@@ -1094,6 +1168,7 @@
       const wrap = GLOBE.wrap;
       const ww = wrap.clientWidth, wh = wrap.clientHeight;
       const camDir = GLOBE.camera.position.clone().normalize();
+      let clearPulse = false;
       GLOBE.markers.forEach(m => {
         const isActive = m.id === activeNodeId;
         const isHover = m.id === GLOBE.hoverId;
@@ -1101,8 +1176,17 @@
         const speed = isActive ? 3.2 : 1.6;
         const pulse = 0.5 + 0.5 * Math.sin(t * speed + m.phase);
         const ringBase = isActive ? 1.1 : isHover ? 1.12 : 1;
-        m.ring.scale.setScalar(ringBase * (1 + 0.35 * pulse));
-        m.ring.material.opacity = (isActive ? 0.9 : isHover ? 0.8 : 0.5) * pulse * (isDim ? 0.4 : 1);
+        // 选中光圈脉冲：点击节点后一次性扩张光环，随后回落
+        let pulseBoost = 1, ringGlow = 0;
+        if (GLOBE.selectPulse && GLOBE.selectPulse.id === m.id) {
+          GLOBE.selectPulse.t += dt;
+          const k = Math.min(1, GLOBE.selectPulse.t / MOTION.SELECT_PULSE_MS);
+          pulseBoost = 1 + 0.7 * (1 - k);
+          ringGlow = 0.5 * (1 - k);
+          if (k >= 1) clearPulse = true;
+        }
+        m.ring.scale.setScalar(ringBase * (1 + 0.35 * pulse) * pulseBoost);
+        m.ring.material.opacity = Math.min(1, (isActive ? 0.9 : isHover ? 0.8 : 0.5) * pulse * (isDim ? 0.4 : 1) + ringGlow);
         m.dot.scale.setScalar(isActive ? 1.9 : isHover ? MOTION.HOVER_SCALE : 1);
 
         const worldPos = m.dot.getWorldPosition(new THREE.Vector3());
@@ -1120,6 +1204,7 @@
         m.label.classList.toggle('active', isActive);
         m.label.classList.toggle('hover', isHover);
       });
+      if (clearPulse) GLOBE.selectPulse = null;
 
       // 流动光弧彗星点沿线移动
       if (GLOBE.arcs) {
@@ -1147,30 +1232,66 @@
     function selectNode(nodeId) {
       const node = MAP_NODES_DATA.find(n => n.id === nodeId);
       if (!node) return;
+      const first = activeNodeId === null;
       activeNodeId = nodeId;
-      renderNewsPanel(node);
+      if (!first) {
+        GLOBE.targetZ = MOTION.CAM_Z_FOCUS;     // 点击节点轻微推近聚焦
+        GLOBE.selectPulse = { id: nodeId, t: 0 }; // 选中光圈脉冲
+      }
+      updateNews(node, !first && !GLOBE.reducedMotion);
     }
 
-    function renderNewsPanel(node) {
-      if (!node.news || !node.news.length) return;
+    // renderNewsPanel 已拆分为 renderNewsHeader / renderNewsList（见上方），旧实现不再使用
+
+    // ===== 新闻切换动效 + 实时城市时钟 + 骨架屏 =====
+    let newsSwitchTimer = null;
+    function cityTime(tz) {
+      try {
+        return new Intl.DateTimeFormat('zh-CN', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date());
+      } catch (e) { return '--:--'; }
+    }
+    function tickClock() {
+      if (!newsPanelMeta) return;
+      const el = newsPanelMeta.querySelector('.city-clock');
+      if (!el || !activeNodeId) return;
+      const tz = CITY_TZ[activeNodeId];
+      if (tz) el.textContent = MAP_NODES_DATA.find(n => n.id === activeNodeId).name + '时间 ' + cityTime(tz);
+    }
+    function renderNewsListSkeleton() {
+      let html = '';
+      for (let i = 0; i < 4; i++) html += '<div class="skeleton-item"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>';
+      newsPanelList.innerHTML = html;
+    }
+    // 切换城市：旧列表上移淡出 -> 刷新 -> 新列表下移淡入；reduced-motion 直接刷新
+    function updateNews(node, animate) {
+      renderNewsHeader(node);
+      if (!animate) { renderNewsList(node); return; }
+      const list = newsPanelList;
+      list.classList.add('leaving');
+      if (newsSwitchTimer) clearTimeout(newsSwitchTimer);
+      newsSwitchTimer = setTimeout(() => {
+        renderNewsList(node);
+        list.classList.remove('leaving');
+        list.classList.add('entering');
+        void list.offsetWidth; // 强制回流，确保过渡触发
+        requestAnimationFrame(() => list.classList.remove('entering'));
+      }, 300);
+    }
+    function renderNewsHeader(node) {
       if (!newsPanel) initNewsPanel();
       newsPanelCity.textContent = node.name;
       const liveCount = node.news.filter(n => n.tags.includes('live')).length;
-      newsPanelMeta.innerHTML = `${node.region} · GFCI #${node.rank}${liveCount ? ` · <span class="news-panel-live"><span class="live-dot"></span>${liveCount} 直播中</span>` : ''}`;
-
+      newsPanelMeta.innerHTML = '<span class="city-clock">' + node.name + '时间 ' + cityTime(CITY_TZ[node.id]) + '</span><span>GFCI 全球金融中心排名 #' + node.rank + '</span>' + (liveCount ? '<span class="news-panel-live"><span class="live-dot"></span>' + liveCount + ' 直播中</span>' : '');
+    }
+    function renderNewsList(node) {
+      if (!node.news || !node.news.length) { renderNewsListSkeleton(); return; }
       newsPanelList.innerHTML = node.news.map(item => {
-        const tag = item.tags && item.tags[0] || '';
+        const tag = (item.tags && item.tags[0]) || '';
         const tagLabel = { hot:'热门', live:'直播', policy:'政策', finance:'金融', industry:'产业', energy:'能源', alert:'预警', update:'更新', trade:'贸易', resource:'资源' }[tag] || tag;
-        return `<div class="news-item">
-          <div class="news-title">${item.title}</div>
-          <div class="news-meta">
-            ${tagLabel ? `<span class="news-tag ${tag}">${tagLabel}</span>` : ''}
-            <span>${item.source}</span>
-            <span>${item.time}</span>
-          </div>
-        </div>`;
+        return '<div class="news-item"><div class="news-title">' + item.title + '</div><div class="news-meta">' + (tagLabel ? '<span class="news-tag ' + tag + '">' + tagLabel + '</span>' : '') + '<span>' + item.source + '</span><span>' + item.time + '</span></div></div>';
       }).join('');
     }
+    setInterval(tickClock, 1000);
 
     // 页面加载完成后自动初始化 3D 地球
     document.addEventListener('DOMContentLoaded', () => {
