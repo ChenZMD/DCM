@@ -862,8 +862,9 @@
           [31.23,121.47],[30.5,123.5],[24.5,119.5],[15.0,112.0],[7.5,110.0],
           [1.43,102.9],[1.29,103.85],[2.0,98.0],[6.0,90.0],[10.0,75.0],
           [12.5,60.0],[13.0,45.0],[12.6,43.4],[20.0,38.0],[27.5,34.0],
-          [30.0,32.35],[34.0,28.0],[35.5,18.0],[37.5,5.0],[36.0,-5.5],
-          [40.0,-9.0],[45.0,-10.0],[49.5,-5.0],[51.95,4.14]
+          [30.0,32.35],[34.0,28.0],[35.5,18.0],[37.5,5.0],[37.0,0.0],
+          [36.5,-3.0],[36.0,-5.5],[36.0,-8.0],[40.0,-9.0],[45.0,-10.0],
+          [49.5,-5.0],[51.95,4.14]
         ]
       },
       {
@@ -893,8 +894,9 @@
         vessel_count: 16,
         path: [
           [1.29,103.85],[6.0,90.0],[10.0,75.0],[12.5,60.0],[13.0,45.0],
-          [10.0,50.0],[5.0,45.0],[0.0,42.0],[-10.0,45.0],[-20.0,40.0],
-          [-34.8,18.4],[-35.0,-5.0],[0.0,-20.0],[15.0,-30.0],[35.0,-40.0],
+          [-4.0,39.5],[-8.0,40.0],[-12.0,42.0],[-15.0,40.0],[-20.0,35.0],
+          [-26.0,33.0],[-30.0,30.5],[-34.0,25.0],[-35.0,18.0],
+          [-35.0,-5.0],[0.0,-20.0],[15.0,-30.0],[35.0,-40.0],
           [45.0,-10.0],[49.5,-5.0],[51.95,4.14]
         ]
       },
@@ -913,8 +915,9 @@
         via: ['珊瑚海','托雷斯海峡','阿拉弗拉海'],
         vessel_count: 14,
         path: [
-          [-33.86,151.2],[-20.0,150.0],[-10.5,142.0],[-8.0,135.0],[-8.0,125.0],
-          [-3.0,112.0],[1.29,103.85]
+          [1.29,103.85],[-2.0,105.0],[-5.0,110.0],[-7.0,115.0],[-6.0,125.0],
+          [-4.0,133.0],[-5.0,140.0],[-12.0,143.0],[-23.0,151.0],[-27.0,154.0],
+          [-33.0,151.0]
         ]
       },
       {
@@ -1668,6 +1671,12 @@
         document.head.appendChild(s);
       });
     }
+    function debounce(fn, wait) {
+      let t; return function () {
+        const ctx = this, args = arguments;
+        clearTimeout(t); t = setTimeout(function () { fn.apply(ctx, args); }, wait);
+      };
+    }
     let _2dAssets = null;
     function load2DAssets() {
       if (window.echarts && window.WORLD_GEO_JSON) return Promise.resolve();
@@ -1725,6 +1734,7 @@
         tooltip: {
           trigger: 'item', backgroundColor: 'rgba(8,16,34,0.95)', borderColor: 'rgba(120,170,230,0.4)',
           textStyle: { color: '#eaf4ff', fontSize: 12 },
+          hideDelay: 250, enterable: false,
           formatter: function (p) {
             if (p.seriesType === 'effectScatter' || p.seriesType === 'scatter')
               return '<b>' + p.data.name + '</b><br/>吞吐量：' + p.data.value[2] + ' 万 TEU<br/>排名：全球 Top ' + p.data.rank;
@@ -1780,6 +1790,14 @@
           echarts.registerMap('world', window.WORLD_GEO_JSON);
           GLOBE.chart2d = echarts.init(document.getElementById('map2d'));
           GLOBE.chart2d.setOption(build2DOption());
+          // 防抖：hover 坐标贴近海岸线时 Tooltip/高亮易高频闪烁，mouseover/mouseout 加 debounce 抑制抖动
+          const linesIdx = GLOBE.chart2d.getOption().series.findIndex(function (s) { return s.type === 'lines'; });
+          GLOBE.chart2d.on('mouseover', debounce(function (p) {
+            if (p && p.seriesType === 'lines') GLOBE.chart2d.dispatchAction({ type: 'highlight', seriesIndex: linesIdx, dataIndex: p.dataIndex });
+          }, 120));
+          GLOBE.chart2d.on('mouseout', debounce(function () {
+            GLOBE.chart2d.dispatchAction({ type: 'downplay', seriesIndex: linesIdx });
+          }, 160));
         } else {
           GLOBE.chart2d.resize();
         }
