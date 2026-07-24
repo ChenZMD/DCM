@@ -370,8 +370,11 @@
     .map2d-legend .lg-b i { display: block; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #54d6e8, #1f6f9c); border: 1px solid rgba(255,255,255,.5); }
     .map2d-legend .lg-scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-400); }
     .map2d-legend .lg-note { font-size: 10px; color: var(--text-400); margin-top: 6px; line-height: 1.5; }
-    .map2d-legend .lg-route { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 11px; }
-    .map2d-legend .lg-route i { width: 22px; height: 3px; border-radius: 2px; background: linear-gradient(90deg,#00d4ff,#3b82f6); box-shadow: 0 0 8px rgba(0,212,255,.7); }
+    .map2d-legend .lg-routes { margin-top: 9px; display: flex; flex-direction: column; gap: 5px; font-size: 11px; }
+    .map2d-legend .lg-rt { display: flex; align-items: center; gap: 8px; }
+    .map2d-legend .lg-rt i { width: 22px; height: 3px; border-radius: 2px; flex: none; }
+    .map2d-legend .rt-trunk { background: rgba(40,210,255,0.9); box-shadow: 0 0 8px rgba(40,210,255,.7); }
+    .map2d-legend .rt-sec { background: rgba(0,255,170,0.9); box-shadow: 0 0 8px rgba(0,255,170,.6); }
     .map2d-legend .lg-data { font-size: 10px; color: var(--warn); margin-top: 8px; border-top: 1px solid var(--border-soft); padding-top: 7px; }
 
   </style>
@@ -848,9 +851,11 @@
     // ===== V4.2 真实国际集装箱班轮航线（现实航路点，非实时 AIS） =====
     // path: [[lat, lng], ...] 真实港口/海峡/运河经纬度，使航线贴合海岸线、绕开陆块。
     // vessel_count: 由所连港口吞吐量排名决定的演示船队规模（非真实在航船只数）。
+    // tier: 'trunk'(主干·青蓝) / 'secondary'(次级·绿)；from/to 用于 2D Tooltip「X ↔ Y，活跃船舶 N 艘」
     const SHIPPING_ROUTES = [
       {
-        id: 'asia_europe', name: '亚欧航线', color: 0x00d4ff,
+        id: 'asia_europe', name: '亚欧航线', color: 0x00d4ff, tier: 'trunk',
+        from: '上海港', to: '鹿特丹港',
         via: ['台湾海峡','南海','马六甲海峡','印度洋','红海','苏伊士运河','地中海','直布罗陀海峡'],
         vessel_count: 45,
         path: [
@@ -862,7 +867,8 @@
         ]
       },
       {
-        id: 'transpacific', name: '跨太平洋航线', color: 0x3b82f6,
+        id: 'transpacific', name: '跨太平洋航线', color: 0x3b82f6, tier: 'trunk',
+        from: '上海港', to: '洛杉矶港',
         via: ['东海','北太平洋','白令海域'],
         vessel_count: 42,
         path: [
@@ -871,7 +877,8 @@
         ]
       },
       {
-        id: 'intra_asia_sea', name: '泛东南亚区域航线', color: 0x2dd4bf,
+        id: 'intra_asia_sea', name: '泛东南亚区域航线', color: 0x2dd4bf, tier: 'trunk',
+        from: '新加坡港', to: '深圳港',
         via: ['南海'],
         vessel_count: 30,
         path: [
@@ -880,7 +887,8 @@
         ]
       },
       {
-        id: 'asia_europe_cape', name: '亚欧航线(好望角/红海避险)', color: 0x38bdf8,
+        id: 'asia_europe_cape', name: '亚欧航线(好望角/红海避险)', color: 0x38bdf8, tier: 'secondary',
+        from: '新加坡港', to: '鹿特丹港',
         via: ['马六甲海峡','印度洋','好望角'],
         vessel_count: 16,
         path: [
@@ -891,7 +899,8 @@
         ]
       },
       {
-        id: 'transatlantic', name: '跨大西洋航线', color: 0x60a5fa,
+        id: 'transatlantic', name: '跨大西洋航线', color: 0x60a5fa, tier: 'trunk',
+        from: '纽约港', to: '鹿特丹港',
         via: ['北大西洋'],
         vessel_count: 36,
         path: [
@@ -899,7 +908,8 @@
         ]
       },
       {
-        id: 'oceania', name: '大洋洲航线(托雷斯海峡)', color: 0x34d399,
+        id: 'oceania', name: '大洋洲航线(托雷斯海峡)', color: 0x34d399, tier: 'secondary',
+        from: '悉尼港', to: '新加坡港',
         via: ['珊瑚海','托雷斯海峡','阿拉弗拉海'],
         vessel_count: 14,
         path: [
@@ -908,7 +918,8 @@
         ]
       },
       {
-        id: 'persian_gulf', name: '波斯湾/中东航线(霍尔木兹)', color: 0x22d3ee,
+        id: 'persian_gulf', name: '波斯湾/中东航线(霍尔木兹)', color: 0x22d3ee, tier: 'secondary',
+        from: '孟买港', to: '迪拜港',
         via: ['阿拉伯海','霍尔木兹海峡'],
         vessel_count: 22,
         path: [
@@ -1627,25 +1638,27 @@
      * 复用 V4.2 SHIPPING_ROUTES 真实航路点（[lat,lng] → 转 [lng,lat]）
      * 离线依赖：vendor/echarts.min.js + vendor/data/world-geo.js（已内置）
      * ========================================================= */
+    // dx/dy：对中国沿海密集港口群施加细微经纬度偏移（度），避免气泡重叠形成视觉黑洞（引线/锚点式布局简化版）
     const PORT_THROUGHPUT = [
-      { name: '上海港',   cn: '上海',     en: 'Shanghai',   lat: 31.23, lng: 121.47, teu: 4920, rank: 1 },
-      { name: '新加坡港', cn: '新加坡',   en: 'Singapore',  lat: 1.29,  lng: 103.85, teu: 3900, rank: 2 },
-      { name: '宁波舟山港', cn: '宁波',   en: 'Ningbo',    lat: 29.87, lng: 121.55, teu: 3530, rank: 3 },
-      { name: '深圳港',   cn: '深圳',     en: 'Shenzhen',   lat: 22.54, lng: 114.06, teu: 2990, rank: 4 },
-      { name: '青岛港',   cn: '青岛',     en: 'Qingdao',    lat: 36.07, lng: 120.38, teu: 2870, rank: 5 },
-      { name: '广州港',   cn: '广州',     en: 'Guangzhou',  lat: 23.13, lng: 113.26, teu: 2540, rank: 6 },
-      { name: '釜山港',   cn: '釜山',     en: 'Busan',      lat: 35.10, lng: 129.04, teu: 2300, rank: 7 },
-      { name: '天津港',   cn: '天津',     en: 'Tianjin',    lat: 39.08, lng: 117.20, teu: 2220, rank: 8 },
-      { name: '中国香港', cn: '中国香港', en: 'Hong Kong', lat: 22.30, lng: 114.17, teu: 1430, rank: 9 },
-      { name: '鹿特丹港', cn: '鹿特丹',   en: 'Rotterdam', lat: 51.95, lng: 4.14,   teu: 1340, rank: 10 },
+      { name: '上海港',   cn: '上海',     en: 'Shanghai',   lat: 31.23, lng: 121.47, teu: 4920, rank: 1, dx: 0,    dy: 0    },
+      { name: '新加坡港', cn: '新加坡',   en: 'Singapore',  lat: 1.29,  lng: 103.85, teu: 3900, rank: 2, dx: 0,    dy: 0    },
+      { name: '宁波舟山港', cn: '宁波',   en: 'Ningbo',    lat: 29.87, lng: 121.55, teu: 3530, rank: 3, dx: 0,    dy: -1.7 },
+      { name: '深圳港',   cn: '深圳',     en: 'Shenzhen',   lat: 22.54, lng: 114.06, teu: 2990, rank: 4, dx: 0.2,  dy: -1.2 },
+      { name: '青岛港',   cn: '青岛',     en: 'Qingdao',    lat: 36.07, lng: 120.38, teu: 2870, rank: 5, dx: 0,    dy: 0    },
+      { name: '广州港',   cn: '广州',     en: 'Guangzhou',  lat: 23.13, lng: 113.26, teu: 2540, rank: 6, dx: 0,    dy: 1.3  },
+      { name: '釜山港',   cn: '釜山',     en: 'Busan',      lat: 35.10, lng: 129.04, teu: 2300, rank: 7, dx: 0,    dy: 0    },
+      { name: '天津港',   cn: '天津',     en: 'Tianjin',    lat: 39.08, lng: 117.20, teu: 2220, rank: 8, dx: 0,    dy: 0    },
+      { name: '中国香港', cn: '中国香港', en: 'Hong Kong', lat: 22.30, lng: 114.17, teu: 1430, rank: 9, dx: 0.5,  dy: -0.5 },
+      { name: '鹿特丹港', cn: '鹿特丹',   en: 'Rotterdam', lat: 51.95, lng: 4.14,   teu: 1340, rank: 10, dx: 0,    dy: 0    },
     ];
     // ⚠️ 以上为近似 2023 年公开统计值（单位：万 TEU），演示用途，待数据组以官方口径核实替换
     const TEU_MIN = PORT_THROUGHPUT.reduce((m, p) => Math.min(m, p.teu), Infinity);
     const TEU_MAX = PORT_THROUGHPUT.reduce((m, p) => Math.max(m, p.teu), -Infinity);
     // 气泡半径线性映射真实吞吐量（严格正相关），并钳制 20–60px 防重叠
+    // 气泡半径线性映射真实吞吐量（严格正相关），并钳制 20–45px 防重叠（maxRadius=45，任务单指定）
     function teuToRadius(teu) {
-      const r = 20 + (teu - TEU_MIN) / (TEU_MAX - TEU_MIN) * 40;
-      return Math.max(20, Math.min(60, r));
+      const r = 20 + (teu - TEU_MIN) / (TEU_MAX - TEU_MIN) * 25;
+      return Math.max(20, Math.min(45, r));
     }
     function loadScript(src) {
       return new Promise((resolve, reject) => {
@@ -1663,7 +1676,11 @@
       return _2dAssets;
     }
     function build2DOption() {
-      const ports = PORT_THROUGHPUT.map(p => ({ name: p.name, value: [p.lng, p.lat, p.teu], rank: p.rank }));
+      // 港口坐标防重叠：对密集的中国沿海港口群施加细微经纬度偏移（引线/锚点式布局的简化版）
+      const ports = PORT_THROUGHPUT.map(p => ({
+        name: p.name, rank: p.rank,
+        value: [p.lng + (p.dx || 0), p.lat + (p.dy || 0), p.teu],
+      }));
       // 将跨越 180° 经线的航线在边界处拆段，避免 2D 平面直线穿越大陆（穿模）
       // 注：geo 默认等距圆柱投影，经度范围 [-180,180]，跨 180° 需拆成两段贴边
       function splitAntimeridian(coords) {
@@ -1682,13 +1699,18 @@
         }
         segs.push(cur); return segs;
       }
+      // 航线颜色/宽度规格（任务单指定）：主干青蓝、次级绿；hover 高亮、其余降至 0.3
+      const ROUTE_COLOR = { trunk: 'rgba(40,210,255,0.8)', secondary: 'rgba(0,255,170,0.8)' };
+      const ROUTE_W = { trunk: 3, secondary: 2 };
       const routeData = [];
       SHIPPING_ROUTES.forEach(r => {
+        const tier = r.tier || 'trunk';
         const lngLat = r.path.map(([lat, lng]) => [lng, lat]);
         splitAntimeridian(lngLat).forEach(seg => {
           routeData.push({
-            name: r.name, coords: seg, via: r.via, vessel: r.vessel_count,
-            color: '#' + r.color.toString(16).padStart(6, '0'),
+            name: r.name, coords: seg, via: r.via,
+            from: r.from, to: r.to, vessel: r.vessel_count, tier,
+            lineStyle: { color: ROUTE_COLOR[tier], width: ROUTE_W[tier] },
           });
         });
       });
@@ -1704,25 +1726,35 @@
           trigger: 'item', backgroundColor: 'rgba(8,16,34,0.95)', borderColor: 'rgba(120,170,230,0.4)',
           textStyle: { color: '#eaf4ff', fontSize: 12 },
           formatter: function (p) {
-            if (p.seriesType === 'effectScatter')
+            if (p.seriesType === 'effectScatter' || p.seriesType === 'scatter')
               return '<b>' + p.data.name + '</b><br/>吞吐量：' + p.data.value[2] + ' 万 TEU<br/>排名：全球 Top ' + p.data.rank;
             if (p.seriesType === 'lines')
-              return '<b>' + p.data.name + '</b><br/>途经：' + p.data.via.join(' · ') + '<br/>现实黄金航道 · 集装箱周班次(演示) ×' + p.data.vessel;
+              return '<b>' + p.data.from + ' ↔ ' + p.data.to + '</b><br/>活跃船舶：' + p.data.vessel + ' 艘<br/>途经：' + p.data.via.join(' · ');
             return p.name;
           },
         },
         geo: geoOpt,
         visualMap: {
-          type: 'continuous', min: TEU_MIN, max: TEU_MAX, dimension: 2, seriesIndex: 0,
+          type: 'continuous', min: TEU_MIN, max: TEU_MAX, dimension: 2, seriesIndex: [0, 1, 2],
           text: ['繁忙', '空闲'], textStyle: { color: '#8ea7c0', fontSize: 10 },
           inRange: { color: ['#1f6f9c', '#2f8fd0', '#54d6e8', '#ffd666', '#ff9d6b', '#ff6f86'] },
           calculable: true, orient: 'vertical', left: 14, bottom: 70, itemWidth: 12, itemHeight: 110,
         },
         series: [
+          { // 同心光晕层 2（最外·最淡）——用光晕增加视觉面积，避免实心圆无限放大
+            name: '吞吐量光晕', type: 'scatter', coordinateSystem: 'geo', geoIndex: 0, silent: true,
+            data: ports, symbolSize: function (v) { return teuToRadius(v[2]) * 2.4; },
+            itemStyle: { opacity: 0.06, borderColor: 'rgba(120,200,255,0.18)', borderWidth: 1 }, zlevel: 1,
+          },
+          { // 同心光晕层 1
+            name: '吞吐量光晕', type: 'scatter', coordinateSystem: 'geo', geoIndex: 0, silent: true,
+            data: ports, symbolSize: function (v) { return teuToRadius(v[2]) * 1.7; },
+            itemStyle: { opacity: 0.12, borderColor: 'rgba(120,200,255,0.3)', borderWidth: 1 }, zlevel: 1,
+          },
           {
             name: '吞吐量气泡', type: 'effectScatter', coordinateSystem: 'geo', geoIndex: 0,
             data: ports, symbolSize: function (v) { return teuToRadius(v[2]); },
-            showEffectOn: 'render', rippleEffect: { brushType: 'stroke', scale: 2.6, period: 4 },
+            showEffectOn: 'render', rippleEffect: { brushType: 'stroke', scale: 2.4, period: 4 },
             itemStyle: { borderColor: '#fff', borderWidth: 1, shadowBlur: 12, shadowColor: 'rgba(255,214,102,0.5)' },
             label: { show: false },
             emphasis: { label: { show: true, formatter: '{b}', color: '#fff', fontSize: 12, fontWeight: 'bold' },
@@ -1730,10 +1762,12 @@
             zlevel: 3,
           },
           {
-            name: '真实航线', type: 'lines', coordinateSystem: 'geo', geoIndex: 0, polyline: true,
-            effect: { show: true, period: 5, trailLength: 0.22, color: '#aef6ff', symbolSize: 4 },
-            lineStyle: { width: 1.4, opacity: 0.55, curveness: 0 },
-            data: routeData.map(d => ({ coords: d.coords, name: d.name, via: d.via, vessel: d.vessel, lineStyle: { color: d.color } })),
+            name: '真实航线', type: 'lines', coordinateSystem: 'geo', geoIndex: 0, polyline: true, smooth: true,
+            effect: { show: true, period: 5, trailLength: 0.22, color: '#ffffff', symbolSize: 4 },
+            lineStyle: { opacity: 0.8, curveness: 0 },
+            emphasis: { lineStyle: { opacity: 1, width: 4 } },
+            blur: { lineStyle: { opacity: 0.3 } }, blurScope: 'series',
+            data: routeData,
             zlevel: 2,
           },
         ],
@@ -1756,13 +1790,20 @@
     function renderLegend() {
       const lg = document.getElementById('map2dLegend');
       if (!lg) return;
+      const lo = Math.round(TEU_MIN), hi = Math.round(TEU_MAX), mid = Math.round((TEU_MIN + TEU_MAX) / 2);
+      const rLo = Math.round(teuToRadius(TEU_MIN)), rHi = Math.round(teuToRadius(TEU_MAX)), rMid = Math.round(teuToRadius(mid));
       lg.innerHTML =
         '<div class="lg-title">吞吐量气泡（万 TEU）</div>' +
-        '<div class="lg-bubbles"><span class="lg-b"><i style="width:12px;height:12px"></i><b>低</b></span>' +
-        '<span class="lg-b"><i style="width:34px;height:34px"></i><b>高</b></span></div>' +
-        '<div class="lg-scale"><span>' + TEU_MIN + '</span><span>' + TEU_MAX + '</span></div>' +
-        '<div class="lg-note">圈越大=吞吐量越高 · 颜色蓝→黄→红=繁忙度</div>' +
-        '<div class="lg-route"><i></i>蓝色发光线 = 主干黄金航道</div>' +
+        '<div class="lg-bubbles">' +
+          '<span class="lg-b"><i style="width:' + rLo + 'px;height:' + rLo + 'px"></i><b>' + lo + '</b></span>' +
+          '<span class="lg-b"><i style="width:' + rMid + 'px;height:' + rMid + 'px"></i><b>' + mid + '</b></span>' +
+          '<span class="lg-b"><i style="width:' + rHi + 'px;height:' + rHi + 'px"></i><b>' + hi + '</b></span>' +
+        '</div>' +
+        '<div class="lg-note">圈越大 = 吞吐量越高 · 颜色蓝→黄→红 = 繁忙度</div>' +
+        '<div class="lg-routes">' +
+          '<div class="lg-rt"><i class="rt-trunk"></i>主干航道（青蓝 · 3px）</div>' +
+          '<div class="lg-rt"><i class="rt-sec"></i>次级/区域航道（绿 · 2px）</div>' +
+        '</div>' +
         '<div class="lg-data">演示数据·近似值，待数据组核实</div>';
     }
     function setView(mode) {
