@@ -338,6 +338,42 @@
       .news-panel { height: 50vh; border-left: none; border-top: 1px solid var(--border); }
       .hint { display: none; }
     }
+    /* ===== V4.3 · 2D 降级地图（ECharts 离线渲染） ===== */
+    .map2d { position: absolute; inset: 0; z-index: 5; background: var(--bg-800); }
+    .map2d[hidden] { display: none; }
+    .view-toggle {
+      position: absolute; top: 14px; right: 14px; z-index: 20;
+      display: flex; gap: 6px; padding: 4px;
+      background: rgba(8,16,34,0.7); border: 1px solid var(--border-soft);
+      border-radius: 20px; backdrop-filter: blur(8px);
+    }
+    .vt-btn {
+      border: none; background: transparent; color: var(--text-300);
+      font-size: 12px; padding: 6px 14px; border-radius: 16px; cursor: pointer;
+      transition: .18s ease; font-family: var(--font);
+    }
+    .vt-btn:hover { color: var(--text-100); }
+    .vt-btn.active {
+      background: linear-gradient(90deg, rgba(0,212,255,.22), rgba(59,130,246,.22));
+      color: #fff; box-shadow: inset 0 0 0 1px rgba(0,212,255,.4);
+    }
+    .map2d-legend {
+      position: absolute; left: 14px; bottom: 14px; z-index: 20;
+      background: rgba(8,16,34,0.78); border: 1px solid var(--border-soft);
+      border-radius: 12px; padding: 12px 14px; font-size: 12px; color: var(--text-300);
+      backdrop-filter: blur(8px); min-width: 200px;
+    }
+    .map2d-legend[hidden] { display: none; }
+    .map2d-legend .lg-title { font-size: 11px; color: var(--text-400); margin-bottom: 8px; letter-spacing: .4px; }
+    .map2d-legend .lg-bubbles { display: flex; align-items: flex-end; gap: 12px; margin: 2px 0 4px; }
+    .map2d-legend .lg-b { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; color: var(--text-400); }
+    .map2d-legend .lg-b i { display: block; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #54d6e8, #1f6f9c); border: 1px solid rgba(255,255,255,.5); }
+    .map2d-legend .lg-scale { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-400); }
+    .map2d-legend .lg-note { font-size: 10px; color: var(--text-400); margin-top: 6px; line-height: 1.5; }
+    .map2d-legend .lg-route { display: flex; align-items: center; gap: 7px; margin-top: 8px; font-size: 11px; }
+    .map2d-legend .lg-route i { width: 22px; height: 3px; border-radius: 2px; background: linear-gradient(90deg,#00d4ff,#3b82f6); box-shadow: 0 0 8px rgba(0,212,255,.7); }
+    .map2d-legend .lg-data { font-size: 10px; color: var(--warn); margin-top: 8px; border-top: 1px solid var(--border-soft); padding-top: 7px; }
+
   </style>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23071a2f'/><circle cx='16' cy='16' r='9' fill='none' stroke='%2300d4ff' stroke-width='2'/><text x='16' y='21' font-size='12' text-anchor='middle' fill='%2300d4ff' font-family='sans-serif'>¥</text></svg>">
 </head>
@@ -360,6 +396,12 @@
       <canvas id="globeCanvas"></canvas>
       <div class="globe-labels" id="globeLabels"></div>
       <div class="globe-fallback" id="globeFallback" hidden></div>
+      <div class="map2d" id="map2d" hidden></div>
+      <div class="view-toggle" id="viewToggle">
+        <button type="button" class="vt-btn active" data-mode="3d">3D 地球</button>
+        <button type="button" class="vt-btn" data-mode="2d">2D 地图</button>
+      </div>
+      <div class="map2d-legend" id="map2dLegend" hidden></div>
     </div>
 
     <!-- 右侧：新闻面板 -->
@@ -659,7 +701,7 @@
     // ===== 3D 地球（Three.js） =====
     let worldGeo = null;
     const GLOBE = {
-      ready: false, inited: false,
+      ready: false, inited: false, mode: '3d', chart2d: null,
       scene: null, camera: null, renderer: null, globeGroup: null, wrap: null, canvas: null,
       markers: [], dotMeshes: [], hitMeshes: [], raycaster: null, pointer: null,
       arcs: [], isDragging: false, moved: false, autoRotate: true, R: 1,
@@ -1275,6 +1317,7 @@
     function animateGlobe() {
       if (!GLOBE.ready) return;
       requestAnimationFrame(animateGlobe);
+      if (GLOBE.mode === '2d') return; // 2D 视图时暂停 3D 渲染，保留 rAF 以便切回
       const now = performance.now();
       const dt = Math.min(50, now - (GLOBE.lastT || now));
       GLOBE.lastT = now;
@@ -1577,6 +1620,163 @@
       onGlobeResize();
       if (!activeNodeId && MAP_NODES_DATA.length) selectNode(MAP_NODES_DATA[0].id);
     });
+
+    /* =========================================================
+     * V4.3 · 2D 降级地图（ECharts 离线渲染）
+     * 真实港口吞吐量气泡 + 贴合海岸线真实航线 + 船队流动
+     * 复用 V4.2 SHIPPING_ROUTES 真实航路点（[lat,lng] → 转 [lng,lat]）
+     * 离线依赖：vendor/echarts.min.js + vendor/data/world-geo.js（已内置）
+     * ========================================================= */
+    const PORT_THROUGHPUT = [
+      { name: '上海港',   cn: '上海',     en: 'Shanghai',   lat: 31.23, lng: 121.47, teu: 4920, rank: 1 },
+      { name: '新加坡港', cn: '新加坡',   en: 'Singapore',  lat: 1.29,  lng: 103.85, teu: 3900, rank: 2 },
+      { name: '宁波舟山港', cn: '宁波',   en: 'Ningbo',    lat: 29.87, lng: 121.55, teu: 3530, rank: 3 },
+      { name: '深圳港',   cn: '深圳',     en: 'Shenzhen',   lat: 22.54, lng: 114.06, teu: 2990, rank: 4 },
+      { name: '青岛港',   cn: '青岛',     en: 'Qingdao',    lat: 36.07, lng: 120.38, teu: 2870, rank: 5 },
+      { name: '广州港',   cn: '广州',     en: 'Guangzhou',  lat: 23.13, lng: 113.26, teu: 2540, rank: 6 },
+      { name: '釜山港',   cn: '釜山',     en: 'Busan',      lat: 35.10, lng: 129.04, teu: 2300, rank: 7 },
+      { name: '天津港',   cn: '天津',     en: 'Tianjin',    lat: 39.08, lng: 117.20, teu: 2220, rank: 8 },
+      { name: '中国香港', cn: '中国香港', en: 'Hong Kong', lat: 22.30, lng: 114.17, teu: 1430, rank: 9 },
+      { name: '鹿特丹港', cn: '鹿特丹',   en: 'Rotterdam', lat: 51.95, lng: 4.14,   teu: 1340, rank: 10 },
+    ];
+    // ⚠️ 以上为近似 2023 年公开统计值（单位：万 TEU），演示用途，待数据组以官方口径核实替换
+    const TEU_MIN = PORT_THROUGHPUT.reduce((m, p) => Math.min(m, p.teu), Infinity);
+    const TEU_MAX = PORT_THROUGHPUT.reduce((m, p) => Math.max(m, p.teu), -Infinity);
+    // 气泡半径线性映射真实吞吐量（严格正相关），并钳制 20–60px 防重叠
+    function teuToRadius(teu) {
+      const r = 20 + (teu - TEU_MIN) / (TEU_MAX - TEU_MIN) * 40;
+      return Math.max(20, Math.min(60, r));
+    }
+    function loadScript(src) {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector('script[src="' + src + '"]')) return resolve();
+        const s = document.createElement('script');
+        s.src = src; s.onload = () => resolve(); s.onerror = () => reject(new Error('load ' + src));
+        document.head.appendChild(s);
+      });
+    }
+    let _2dAssets = null;
+    function load2DAssets() {
+      if (window.echarts && window.WORLD_GEO_JSON) return Promise.resolve();
+      if (_2dAssets) return _2dAssets;
+      _2dAssets = Promise.all([ loadScript('vendor/echarts.min.js'), loadScript('vendor/data/world-geo.js') ]);
+      return _2dAssets;
+    }
+    function build2DOption() {
+      const useMerc = window.echarts && echarts.version && parseFloat(echarts.version) >= 5.1;
+      const ports = PORT_THROUGHPUT.map(p => ({ name: p.name, value: [p.lng, p.lat, p.teu], rank: p.rank }));
+      const routes = SHIPPING_ROUTES.map(r => ({
+        name: r.name, coords: r.path.map(([lat, lng]) => [lng, lat]),
+        via: r.via, vessel: r.vessel_count, color: '#' + r.color.toString(16).padStart(6, '0'),
+      }));
+      const geoOpt = {
+        map: 'world', roam: true, center: [0, 20], zoom: 1.5,
+        itemStyle: { areaColor: '#0e1a34', borderColor: 'rgba(120,160,220,0.22)', borderWidth: 0.6 },
+        emphasis: { itemStyle: { areaColor: '#1c3466', borderColor: 'rgba(0,212,255,0.6)', borderWidth: 1.2 }, label: { show: false } },
+        label: { show: false }, scaleLimit: { min: 1, max: 12 },
+      };
+      if (useMerc) geoOpt.projection = { type: 'mercator' };
+      return {
+        backgroundColor: 'transparent',
+        tooltip: {
+          trigger: 'item', backgroundColor: 'rgba(8,16,34,0.95)', borderColor: 'rgba(120,170,230,0.4)',
+          textStyle: { color: '#eaf4ff', fontSize: 12 },
+          formatter: function (p) {
+            if (p.seriesType === 'effectScatter')
+              return '<b>' + p.data.name + '</b><br/>吞吐量：' + p.data.value[2] + ' 万 TEU<br/>排名：全球 Top ' + p.data.rank;
+            if (p.seriesType === 'lines')
+              return '<b>' + p.data.name + '</b><br/>途经：' + p.data.via.join(' · ') + '<br/>现实黄金航道 · 集装箱周班次(演示) ×' + p.data.vessel;
+            return p.name;
+          },
+        },
+        geo: geoOpt,
+        visualMap: {
+          type: 'continuous', min: TEU_MIN, max: TEU_MAX, dimension: 2, seriesIndex: 0,
+          text: ['繁忙', '空闲'], textStyle: { color: '#8ea7c0', fontSize: 10 },
+          inRange: { color: ['#1f6f9c', '#2f8fd0', '#54d6e8', '#ffd666', '#ff9d6b', '#ff6f86'] },
+          calculable: true, orient: 'vertical', left: 14, bottom: 70, itemWidth: 12, itemHeight: 110,
+        },
+        series: [
+          {
+            name: '吞吐量气泡', type: 'effectScatter', coordinateSystem: 'geo', geoIndex: 0,
+            data: ports, symbolSize: function (v) { return teuToRadius(v[2]); },
+            showEffectOn: 'render', rippleEffect: { brushType: 'stroke', scale: 2.6, period: 4 },
+            itemStyle: { borderColor: '#fff', borderWidth: 1, shadowBlur: 12, shadowColor: 'rgba(255,214,102,0.5)' },
+            label: { show: false },
+            emphasis: { label: { show: true, formatter: '{b}', color: '#fff', fontSize: 12, fontWeight: 'bold' },
+                       itemStyle: { borderColor: '#fff', borderWidth: 2, shadowBlur: 18, shadowColor: 'rgba(0,212,255,0.9)' } },
+            zlevel: 3,
+          },
+          {
+            name: '真实航线', type: 'lines', coordinateSystem: 'geo', geoIndex: 0, polyline: true,
+            effect: { show: true, period: 5, trailLength: 0.22, color: '#aef6ff', symbolSize: 4 },
+            lineStyle: { width: 1.4, opacity: 0.55, curveness: 0 },
+            data: routes.map(r => ({ coords: r.coords, name: r.name, via: r.via, vessel: r.vessel, lineStyle: { color: r.color } })),
+            zlevel: 2,
+          },
+        ],
+      };
+    }
+    function init2D() {
+      return load2DAssets().then(function () {
+        if (!window.WORLD_GEO_JSON) throw new Error('世界地图数据缺失 (vendor/data/world-geo.js)');
+        if (!GLOBE.chart2d) {
+          echarts.registerMap('world', window.WORLD_GEO_JSON);
+          GLOBE.chart2d = echarts.init(document.getElementById('map2d'));
+          GLOBE.chart2d.setOption(build2DOption());
+        } else {
+          GLOBE.chart2d.resize();
+        }
+      }).catch(function (e) {
+        document.getElementById('map2d').innerHTML = '<div style="color:#ffb3b3;padding:30px;font-size:14px">2D 地图加载失败：' + e.message + '</div>';
+      });
+    }
+    function renderLegend() {
+      const lg = document.getElementById('map2dLegend');
+      if (!lg) return;
+      lg.innerHTML =
+        '<div class="lg-title">吞吐量气泡（万 TEU）</div>' +
+        '<div class="lg-bubbles"><span class="lg-b"><i style="width:12px;height:12px"></i><b>低</b></span>' +
+        '<span class="lg-b"><i style="width:34px;height:34px"></i><b>高</b></span></div>' +
+        '<div class="lg-scale"><span>' + TEU_MIN + '</span><span>' + TEU_MAX + '</span></div>' +
+        '<div class="lg-note">圈越大=吞吐量越高 · 颜色蓝→黄→红=繁忙度</div>' +
+        '<div class="lg-route"><i></i>蓝色发光线 = 主干黄金航道</div>' +
+        '<div class="lg-data">演示数据·近似值，待数据组核实</div>';
+    }
+    function setView(mode) {
+      if (mode === GLOBE.mode) return;
+      GLOBE.mode = mode;
+      const canvas = document.getElementById('globeCanvas');
+      const labels = document.getElementById('globeLabels');
+      const fallback = document.getElementById('globeFallback');
+      const map2d = document.getElementById('map2d');
+      const legend = document.getElementById('map2dLegend');
+      const toggle = document.getElementById('viewToggle');
+      if (mode === '2d') {
+        canvas.style.visibility = 'hidden';
+        labels.style.visibility = 'hidden';
+        if (fallback) fallback.style.display = 'none';
+        map2d.hidden = false;
+        legend.hidden = false;
+        init2D().then(function () { if (GLOBE.chart2d) GLOBE.chart2d.resize(); });
+      } else {
+        map2d.hidden = true;
+        legend.hidden = true;
+        canvas.style.visibility = 'visible';
+        labels.style.visibility = 'visible';
+      }
+      if (toggle) toggle.querySelectorAll('.vt-btn').forEach(function (b) { b.classList.toggle('active', b.dataset.mode === mode); });
+    }
+    (function bindViewToggle() {
+      renderLegend();
+      const toggle = document.getElementById('viewToggle');
+      if (!toggle) return;
+      toggle.querySelectorAll('.vt-btn').forEach(function (b) {
+        b.addEventListener('click', function () { setView(b.dataset.mode); });
+      });
+      window.addEventListener('resize', function () { if (GLOBE.chart2d && GLOBE.mode === '2d') GLOBE.chart2d.resize(); });
+    })();
+
   </script>
 </body>
 </html>
