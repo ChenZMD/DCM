@@ -183,6 +183,28 @@
 
 - **诚实边界**：① 研报/新闻为演示数据；② `renderNewsHeader` 的「GFCI 全球金融中心排名 #N」对 5 个港口专属节点显示的是**吞吐量排名**（非 GFCI 金融中心排名），因它们本是港口不是金融中心，属演示标注，介意可改表头文案；③ 2D 实际渲染与点击联动需本机浏览器实测（沙箱无 GUI/DOM）。
 
+### 4.2.9 中国区域下钻 + 双击省份弹省级市级详图（V4.9 · 2026-07-24）
+
+- **需求**：用户要求 2D 地图上**双击「中国」区域**进入**中国细分板块图**（10 经济地理板块按省上色 + 30 城市节点）；**双击任意省份**则在地图**下方抽屉式弹窗**渲染该省**市级行政区划图**，支持关闭/返回。
+
+- **触发链**：
+  1. **世界地图 → 中国**：2D 视图下双击 `China/中国` 区域（`chart.on('dblclick', p => /^(中国|China)$/i.test(p.name)`），或 zrender 层的 click 间隔 < 320ms 兜底，触发 `setView('china')`。
+  2. **中国板块图 → 省份抽屉**：`initChinaMap` 内 `chart.on('dblclick', e.seriesType==='map' && e.name)` 触发 `showProvDrawer(provName)`，按 `CHINA_PROV_ADCODE[provName]` 拉子级 GeoJSON（`geo.datav.aliyun.com/areas_v3/bound/{adcode}_full.json`），创建 `<div class="prov-drawer">` 渲染 ECharts 市级图 + 城市 chip 列表（命中 `CHINA_CITY` 的标"★"，点击直接 `selectNode` 联动右侧研报）。
+  3. **关闭**：抽屉右上角"×"按钮 / `ESC` 键 / `setView` 切走时 `hideProvDrawer()` 调 `chartProv.dispose()` + 移除 DOM。
+
+- **板块着色 + 城市节点**：`initChinaMap` 用 `echarts.registerMap('china', geoJson)`，geo.regions 按 `CHINA_BOARDS`（华北/东北/华东北部/华东南部/华中/粤港澳/西南/西北/海南/北部湾）按省上色（`opacity:0.62`）；`effectScatter` 30 个金融城市（精确经纬度），单击节点调 `selectNode(id)` 联动右侧（与 3D / 2D 港口气泡同一条链路）。
+
+- **数据层**：`CHINA_CITY`（30 城市 lng/lat/prov）、`CHINA_TAKE`（每城 2 条要点）、`CHINA_SCORE`（0.70~0.95 综合评分）、`CHINA_BOARDS`（10 板块含 `provinces[]`）、`CHINA_CITY_NODES`（由前几者派生的节点对象，供 `findNode` 解析）、`chinaReportData`（每城 Mock 研报，`getReport` 走 `reportData[id] || chinaReportData[id] || reportFallback`）、`CITY_TZ` 自动补 `Asia/Shanghai`。
+
+- **`findNode` 三级解析**：`MAP_NODES_DATA`(3D 金融中心) → `PORT_EXTRA_NODES`(港口专属) → `CHINA_CITY_NODES`(中国城市)→`null`。`tickClock` 已从硬编码 `MAP_NODES_DATA.find` 改为 `findNode` 兜底（中国城市 id 不再抛错）；`renderNewsHeader` 区分真实 3D 节点 vs 港口/中国节点，后者展示「所属板块 · 华南板块」或「全球港口吞吐量排名 #N」而非「GFCI 排名」。
+
+- **联网依赖与降级**：
+  1. 中国省级 GeoJSON 默认 `https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json`（拉取失败时进入 `renderChinaOffline`：保留 30 城市节点 + 顶部橙色提示条 + 板块图例，省份多边形不可见，下钻抽屉不可用）。
+  2. 抽屉市级 GeoJSON 按 `CHINA_PROV_ADCODE`（覆盖 31 个省级行政区）按需拉取，单次失败显示抽屉内错误提示（不破坏主地图）。
+  3. **离线解法**：在 `<script>` 之前声明 `window.CHINA_GEO_JSON = {...}` 内嵌省级 GeoJSON，`getChinaGeo()` 优先使用。
+
+- **诚实边界**：① 板块边界与省级 GeoJSON 以 datav.aliyun.com 公开数据为准，与高德/民政部口径若有差异以官方为准；② 重叠省按唯一归属解决（**浙江→华东北部、山东→华东南部**）；③ 城市研报为演示 Mock；④ 双击下钻 / 抽屉弹窗的真实交互需本机浏览器**联网**实测（沙箱无 GUI/DOM/外网）；⑤ `china-drilldown.html`（V4.9 独立单文件版本）作为离线备选保留，功能已被本节覆盖。
+
 ### 4.3 `dashboard/` 已实现业务骨架（演示数据驱动）
 
 > 注：本模块代码已实现，但**构建运行未在沙箱验证**（依赖未安装、需联网 `npm i`）。接手方需 `npm i && npm run dev` 实测。
@@ -213,6 +235,9 @@
 | 实时时钟 | `cityTime(tz)`（IANA 时区 `CITY_TZ`）、`tickClock()`、`tickHotspot()`（15s） |
 | 样式变量 | `:root { --cyan:#00d4ff; --bg-900:#07111f; ... }`（文件头部约 9 行起） |
 | 呼吸光环 / 新闻样式 / 骨架屏 | `.globe-wrap::after` + `@keyframes ringBreath`；`.news-item.top/.top1`；`.skeleton-*` |
+| 中国下钻 (V4.9) | `CHINA_BOARDS`（10 板块）/ `CHINA_CITY`（30 城市）/ `CHINA_TAKE`+`CHINA_SCORE`（Mock 研报）/ `CHINA_CITY_NODES`+`chinaReportData`（findNode/getReport 用）/ `CHINA_PROV_ADCODE`（31 省 adcode） |
+| 中国下钻函数 | `initChinaMap()` → `getChinaGeo()`（拉中国省级 GeoJSON）；`showProvDrawer(provName)` → `hideProvDrawer()`（省级抽屉）；`bindWorldDblclick()`（世界双击中国区）；`renderChinaOffline()`（离线降级） |
+| 抽屉样式 | `.prov-drawer`（底栏 56% 高度，淡入 transform/opacity 过渡）、`.prov-city-chip.in-data`（命中研报节点的青色高亮） |
 
 ---
 

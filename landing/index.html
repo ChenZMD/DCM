@@ -439,6 +439,75 @@
     .map2d-legend .rt-sec { background: rgba(0,255,170,0.9); box-shadow: 0 0 8px rgba(0,255,170,.6); }
     .map2d-legend .lg-data { font-size: 10px; color: var(--warn); margin-top: 8px; border-top: 1px solid var(--border-soft); padding-top: 7px; }
 
+  /* ===== V4.9 中国区域下钻层 ===== */
+  #mapChina.map2d { z-index: 6; }
+  .china-back {
+    position: absolute; top: 16px; left: 16px; z-index: 20;
+    padding: 7px 16px; border-radius: 999px;
+    background: rgba(12,24,40,.82); border: 1px solid #1f4a78; color: #9fd0ff;
+    font-size: 13px; cursor: pointer; backdrop-filter: blur(4px);
+    transition: background .2s, color .2s;
+  }
+  .china-back:hover { background: #143a5e; color: #eaf4ff; }
+  .china-legend {
+    position: absolute; top: 56px; right: 16px; z-index: 18;
+    background: rgba(12,24,40,.72); border: 1px solid #16314f; border-radius: 10px;
+    padding: 11px 14px; width: 168px; backdrop-filter: blur(4px);
+  }
+  .china-legend h4 { margin: 0 0 8px; font-size: 12px; color: #8fb6dd; font-weight: 600; letter-spacing: .5px; }
+  .china-legend .row { display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 12px; color: #bcd6f0; }
+  .china-legend .dot { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+  .china-hint {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    z-index: 18; padding: 6px 16px; border-radius: 999px;
+    background: rgba(12,24,40,.7); border: 1px solid #16314f; color: #7fa8d0; font-size: 12px;
+    pointer-events: none;
+  }
+  /* V4.9 · 省份市级抽屉弹窗 */
+  .prov-drawer {
+    position: absolute; left: 24px; right: 24px; bottom: 24px; height: 56%;
+    background: rgba(10,22,42,.94); border: 1px solid #1f4a78; border-radius: 12px;
+    backdrop-filter: blur(6px);
+    transform: translateY(20px); opacity: 0; pointer-events: none;
+    transition: transform .35s cubic-bezier(.22,.61,.36,1), opacity .35s;
+    z-index: 30; display: flex; flex-direction: column;
+    box-shadow: 0 16px 40px rgba(0,0,0,.5);
+  }
+  .prov-drawer.open { transform: translateY(0); opacity: 1; pointer-events: auto; }
+  .prov-drawer-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px; border-bottom: 1px solid #1f4a78;
+    background: linear-gradient(180deg, rgba(0,212,255,.08), transparent);
+  }
+  .prov-title { color: #9fd0ff; font-size: 14px; font-weight: 600; letter-spacing: .5px; }
+  .prov-close {
+    background: transparent; border: 1px solid #1f4a78; color: #9fd0ff;
+    width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 16px;
+    line-height: 1; transition: background .2s, color .2s;
+  }
+  .prov-close:hover { background: #143a5e; color: #fff; }
+  .prov-drawer-body {
+    flex: 1; display: flex; overflow: hidden;
+    padding: 14px; gap: 14px;
+  }
+  .prov-map-mini { flex: 1.6; min-width: 0; background: rgba(0,0,0,.18); border-radius: 8px; }
+  .prov-city-list {
+    flex: 1; min-width: 200px; max-width: 320px;
+    display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start;
+    overflow-y: auto; padding: 6px; background: rgba(0,0,0,.18); border-radius: 8px;
+  }
+  .prov-city-chip {
+    padding: 5px 11px; background: rgba(28,68,120,.5); border: 1px solid #1f4a78;
+    color: #cfe4ff; font-size: 12px; border-radius: 999px; cursor: pointer;
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .prov-city-chip:hover { background: #143a5e; color: #fff; }
+  .prov-city-chip.in-data { background: rgba(0,212,255,.18); border-color: #00d4ff; color: #bff3ff; }
+  .prov-city-chip.in-data:hover { background: #00d4ff; color: #06121f; }
+  .prov-city-chip.active { background: #ffd24a; border-color: #ffd24a; color: #1a1300; font-weight: 600; }
+  .prov-loading { color: #cfe4ff; font-size: 12px; padding: 14px; line-height: 1.7; }
+  .prov-loading small { color: #7fa8d0; display: block; margin-top: 4px; }
+
   </style>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23071a2f'/><circle cx='16' cy='16' r='9' fill='none' stroke='%2300d4ff' stroke-width='2'/><text x='16' y='21' font-size='12' text-anchor='middle' fill='%2300d4ff' font-family='sans-serif'>¥</text></svg>">
 </head>
@@ -462,6 +531,10 @@
       <div class="globe-labels" id="globeLabels"></div>
       <div class="globe-fallback" id="globeFallback" hidden></div>
       <div class="map2d" id="map2d" hidden></div>
+      <div class="map2d" id="mapChina" hidden></div>
+      <button type="button" class="china-back" id="chinaBackBtn" hidden>&lt; 返回世界视图</button>
+      <div class="china-legend" id="chinaLegend" hidden><h4>经济地理板块</h4></div>
+      <div class="china-hint" id="chinaHint" hidden>双击空白处或点左上角返回 · 单击城市节点查看研报</div>
       <div class="view-toggle" id="viewToggle">
         <button type="button" class="vt-btn active" data-mode="3d">3D 地球</button>
         <button type="button" class="vt-btn" data-mode="2d">2D 地图</button>
@@ -1624,7 +1697,7 @@
         }
       };
     }
-    function getReport(node) { return reportData[node.id] || reportFallback(node); }
+    function getReport(node) { return reportData[node.id] || chinaReportData[node.id] || reportFallback(node); }
     function chainNodeHtml(n) {
       const subs = (n.subs || []).map(s =>
         '<div class="chain-node" data-types="' + (s.types || []).join(',') + '">' +
@@ -1737,7 +1810,10 @@
       const el = newsPanelMeta.querySelector('.city-clock');
       if (!el || !activeNodeId) return;
       const tz = CITY_TZ[activeNodeId];
-      if (tz) el.textContent = MAP_NODES_DATA.find(n => n.id === activeNodeId).name + '时间 ' + cityTime(tz);
+      if (tz) {
+        const n = findNode(activeNodeId);
+        if (n) el.textContent = n.name + '时间 ' + cityTime(tz);
+      }
     }
     function renderNewsListSkeleton() {
       let html = '';
@@ -1798,9 +1874,16 @@
       newsPanelCity.textContent = node.name;
       if (newsPanelSub) newsPanelSub.textContent = '动态数据截至 ' + REPORT_DATE + ' / 复盘截至 ' + REVIEW_DATE;
       const liveCount = node.news.filter(n => n.tags.includes('live')).length;
+      // 区分 3D 金融中心节点 vs 2D 港口/中国城市节点：后者用"板块/吞吐量排名"更准确
+      const isReal3D = !!MAP_NODES_DATA.find(function (n) { return n.id === node.id; });
+      const rankHtml = isReal3D
+        ? '<span>GFCI 全球金融中心排名 #' + node.rank + '</span>'
+        : (node.board
+            ? '<span>所属板块 · ' + esc(node.board) + '</span>'
+            : '<span>全球港口吞吐量排名 #' + node.rank + '</span>');
       newsPanelMeta.innerHTML =
         '<span class="city-clock">' + node.name + '时间 ' + cityTime(CITY_TZ[node.id]) + '</span>' +
-        '<span>GFCI 全球金融中心排名 #' + node.rank + '</span>' +
+        rankHtml +
         (liveCount ? '<span class="news-panel-live"><span class="live-dot"></span>' + liveCount + ' 直播中</span>' : '') +
         '<span class="demo-pill">演示数据</span>' +
         '<span class="realtime-pill"><span class="rt-dot"></span>实时</span>';
@@ -1936,9 +2019,150 @@
         ]
       }
     };
-    // 节点解析：先查 3D 金融中心节点，再查 2D 港口专属节点（保证 2D 全部港口可联动）
+
+    // =========================================================
+    // V4.9 · 中国区域下钻（双击世界地图中国区 → 中国细分板块图）
+    // 注意：中国省级 GeoJSON 仅含「省名」，故用「城市→省份→板块」映射按省上色。
+    //       重叠按省份唯一归属解决（浙江→华东北部、山东→华东南部）。
+    //       联网依赖：China GeoJSON 默认从 datav 在线拉取；若项目已内置
+    //       vendor/data/china-geo.js（设置 window.CHINA_GEO_JSON）则优先本地，保持离线。
+    // =========================================================
+    const CHINA_BOARDS = [
+      { id: 'north',   name: '华北板块',     color: '#4a90d9', provinces: ['北京', '天津', '河北'] },
+      { id: 'ne',      name: '东北板块',     color: '#2f6fb0', provinces: ['辽宁', '吉林', '黑龙江'] },
+      { id: 'ene',     name: '华东北部板块', color: '#36c5d0', provinces: ['上海', '江苏', '浙江'] },
+      { id: 'ese',     name: '华东南部板块', color: '#1fb6c9', provinces: ['福建', '山东'] },
+      { id: 'central', name: '华中板块',     color: '#3a7bd5', provinces: ['湖北', '河南', '湖南', '安徽'] },
+      { id: 'gba',     name: '粤港澳板块',   color: '#00d4ff', provinces: ['广东', '香港'] },
+      { id: 'sw',      name: '西南板块',     color: '#5b8def', provinces: ['重庆', '四川', '云南'] },
+      { id: 'nw',      name: '西北板块',     color: '#274b8f', provinces: ['陕西', '新疆'] },
+      { id: 'hainan',  name: '海南板块',     color: '#28c0a0', provinces: ['海南'] },
+      { id: 'beibu',   name: '北部湾板块',   color: '#2bb3c9', provinces: ['广西'] },
+    ];
+    const CHINA_PROV_COLOR = {};
+    CHINA_BOARDS.forEach(function (b) { b.provinces.forEach(function (p) { CHINA_PROV_COLOR[p] = b.color; }); });
+    function chinaBoardOfProv(prov) {
+      const b = CHINA_BOARDS.find(function (x) { return x.provinces.indexOf(prov) >= 0; });
+      return b ? b.name : '其他';
+    }
+    // 30 个金融城市：经纬度 + 所属省份（与 SOP 一致）
+    const CHINA_CITY = {
+      beijing:      { name: '北京',   en: 'Beijing',     lng: 116.40, lat: 39.90, prov: '北京' },
+      tianjin:      { name: '天津',   en: 'Tianjin',     lng: 117.20, lat: 39.13, prov: '天津' },
+      shijiazhuang: { name: '石家庄', en: 'Shijiazhuang',lng: 114.50, lat: 38.04, prov: '河北' },
+      shenyang:     { name: '沈阳',   en: 'Shenyang',    lng: 123.43, lat: 41.80, prov: '辽宁' },
+      dalian:       { name: '大连',   en: 'Dalian',      lng: 121.62, lat: 38.91, prov: '辽宁' },
+      harbin:       { name: '哈尔滨', en: 'Harbin',      lng: 126.53, lat: 45.80, prov: '黑龙江' },
+      shanghai:     { name: '上海',   en: 'Shanghai',    lng: 121.47, lat: 31.23, prov: '上海' },
+      nanjing:      { name: '南京',   en: 'Nanjing',     lng: 118.78, lat: 32.04, prov: '江苏' },
+      hangzhou:     { name: '杭州',   en: 'Hangzhou',    lng: 120.15, lat: 30.27, prov: '浙江' },
+      suzhou:       { name: '苏州',   en: 'Suzhou',      lng: 120.62, lat: 31.30, prov: '江苏' },
+      ningbo:       { name: '宁波',   en: 'Ningbo',      lng: 121.55, lat: 29.87, prov: '浙江' },
+      xiamen:       { name: '厦门',   en: 'Xiamen',      lng: 118.09, lat: 24.48, prov: '福建' },
+      fuzhou:       { name: '福州',   en: 'Fuzhou',      lng: 119.30, lat: 26.08, prov: '福建' },
+      qingdao:      { name: '青岛',   en: 'Qingdao',     lng: 120.38, lat: 36.07, prov: '山东' },
+      wuhan:        { name: '武汉',   en: 'Wuhan',       lng: 114.31, lat: 30.52, prov: '湖北' },
+      zhengzhou:    { name: '郑州',   en: 'Zhengzhou',   lng: 113.65, lat: 34.76, prov: '河南' },
+      changsha:     { name: '长沙',   en: 'Changsha',    lng: 112.94, lat: 28.23, prov: '湖南' },
+      hefei:        { name: '合肥',   en: 'Hefei',       lng: 117.27, lat: 31.86, prov: '安徽' },
+      shenzhen:     { name: '深圳',   en: 'Shenzhen',    lng: 114.06, lat: 22.54, prov: '广东' },
+      guangzhou:    { name: '广州',   en: 'Guangzhou',   lng: 113.26, lat: 23.13, prov: '广东' },
+      hongkong:     { name: '香港',   en: 'Hong Kong',   lng: 114.17, lat: 22.30, prov: '香港' },
+      chongqing:    { name: '重庆',   en: 'Chongqing',   lng: 106.55, lat: 29.56, prov: '重庆' },
+      chengdu:      { name: '成都',   en: 'Chengdu',     lng: 104.07, lat: 30.57, prov: '四川' },
+      kunming:      { name: '昆明',   en: 'Kunming',     lng: 102.71, lat: 25.04, prov: '云南' },
+      xian:         { name: '西安',   en: "Xi'an",       lng: 108.94, lat: 34.34, prov: '陕西' },
+      wulumuqi:     { name: '乌鲁木齐', en: 'Urumqi',     lng: 87.62,  lat: 43.82, prov: '新疆' },
+      haikou:       { name: '海口',   en: 'Haikou',      lng: 110.20, lat: 20.04, prov: '海南' },
+      sanya:        { name: '三亚',   en: 'Sanya',       lng: 109.51, lat: 18.25, prov: '海南' },
+      nanning:      { name: '南宁',   en: 'Nanning',     lng: 108.37, lat: 22.82, prov: '广西' },
+      beihai:       { name: '北海',   en: 'Beihai',      lng: 109.12, lat: 21.48, prov: '广西' },
+    };
+    // 城市研报要点（精简 Mock，演示用途）与综合评分
+    const CHINA_TAKE = {
+      beijing:      [['京津冀协同深化，总部经济能级领跑全国','金融街集聚效应强化，央企总部数量居首',true],['服务业扩大开放综合试点扩容提速','制度型开放释放新动能',false]],
+      tianjin:      [['北方国际航运枢纽地位巩固，先进制造提速','天津港智慧化改造提升吞吐效率',true],['滨海新区生物医药集群成型','创新药与细胞治疗集聚',false]],
+      shijiazhuang: [['雄安新区辐射带动，冀中南产业承接加速','承接京津产业转移项目落地',true],['生物医药与电子信息双轮驱动','石药等龙头带动产业链',false]],
+      shenyang:     [['老工业基地振兴，装备制造向高端跃迁','机器人及智能制造装备集群壮大',true],['航空发动机产业链补强','军民融合深化',false]],
+      dalian:       [['东北亚航运中心，软件外包与金融双支柱','软件和信息服务业保持区域领先',true],['期货交割库辐射东北亚','航运金融活跃',false]],
+      harbin:       [['对俄合作前沿，冰雪经济与生物经济并进','冰雪旅游消费场景持续扩容',true],['生物疫苗产业链完善','兽用疫苗全国领先',false]],
+      shanghai:     [['国际金融中心能级提升，浦东引领改革','科创板助力硬科技企业融资',true],['临港新片区制度型开放深化','跨境数据流动试点',false]],
+      nanjing:      [['软件名城与先进制造业高地','集成电路设计业规模居前',true],['新能源汽车产业链完善','整车与电池协同',false]],
+      hangzhou:     [['数字经济第一城，平台经济稳健转型','电商直播与跨境贸易活跃',true],['人工智能大模型应用落地','算力与模型双布局',false]],
+      suzhou:       [['工业总产值领跑，外资与民企协同','纳米技术与生物医药特色集群',true],['高端装备出口稳健','智能制造升级',false]],
+      ningbo:       [['港口经济与制造业强市','宁波舟山港货物吞吐量全球领先',true],['绿色石化产业链延伸','炼化一体化项目',false]],
+      xiamen:       [['两岸经贸枢纽，自贸片区先行','跨境电商与航运金融活跃',true],['平板显示产业链完备','面板模组集聚',false]],
+      fuzhou:       [['数字福建核心，海洋经济提速','马尾物联网产业集群成型',true],['海上风电装备制造扩张','海上风电母港',false]],
+      qingdao:      [['海洋科技与品牌制造名城','海洋生物医药加速布局',true],['家电与轨道交通装备出口强','千亿级产业集群',false]],
+      wuhan:        [['中部枢纽，光电子与汽车双引擎','光谷光电子信息产业集群',true],['新能源汽车产能扩张','整车产能跃升',false]],
+      zhengzhou:    [['中原交通枢纽，物流与电子代工','航空港经济综合实验区扩容',true],['智能终端产量居前','富士康等代工',false]],
+      changsha:     [['工程机械之都，文娱消费活跃','工程机械全球竞争力强',true],['芒果系文创 IP 变现稳健','内容生态繁荣',false]],
+      hefei:        [['科创黑马，新能源汽车与面板','蔚来等整车产能释放',true],['新型显示面板产业链完备','京东方 Oxide 产线',false]],
+      shenzhen:     [['创新之城，硬科技与资本高地','深交所注册制改革深化',true],['新能源汽车与无人机领跑','完整软硬件产业链',false]],
+      guangzhou:    [['千年商都，汽车与生物医疗','广交会贸易平台持续活跃',true],['生物医药 CXO 集群成型','研发外包集聚',false]],
+      hongkong:     [['国际金融与离岸枢纽','离岸人民币业务中心地位稳固',true],['家族办公室与资管流入增加','财富管理中心',false]],
+      chongqing:    [['西部陆海新通道枢纽','智能网联汽车产能扩张',true],['电子信息代工链完整','笔电产量全球领先',false]],
+      chengdu:      [['新一线城市，电子信息与文创','集成电路与新型显示集聚',true],['游戏动漫文创活跃','数字内容生态',false]],
+      kunming:      [['面向南亚东南亚门户','中老铁路带动跨境贸易',true],['花卉与生物医药特色','鲜切花产量全球领先',false]],
+      xian:         [['丝路起点，军工与航天重镇','硬科技与半导体设备突破',true],['国际港务区中欧班列密集','内陆港枢纽',false]],
+      wulumuqi:     [['亚欧黄金通道核心','中欧班列集结中心扩容',true],['能源化工与新材料布局','石化基地',false]],
+      haikou:       [['自贸港政策红利释放','离岛免税消费持续扩容',true],['航运与跨境服务贸易活跃','自贸港封关运作',false]],
+      sanya:        [['国际旅游消费中心','邮轮游艇与康养旅游升温',true],['自贸港旅游业开放提速','文旅消费场景',false]],
+      nanning:      [['东盟合作窗口，北部湾门户','中国—东盟博览会平台效应',true],['跨境产业链合作深化','跨境产业合作区',false]],
+      beihai:       [['向海经济与电子产业园','惠科电子产业园集聚',true],['临港新材料与文旅并进','电子信息集群',false]],
+    };
+    const CHINA_SCORE = {
+      beijing:0.92, tianjin:0.80, shijiazhuang:0.72, shenyang:0.74, dalian:0.78, harbin:0.70,
+      shanghai:0.95, nanjing:0.84, hangzhou:0.88, suzhou:0.86, ningbo:0.82, xiamen:0.79, fuzhou:0.77, qingdao:0.81,
+      wuhan:0.83, zhengzhou:0.78, changsha:0.80, hefei:0.82, shenzhen:0.94, guangzhou:0.87, hongkong:0.90,
+      chongqing:0.81, chengdu:0.83, kunming:0.73, xian:0.79, wulumuqi:0.71, haikou:0.75, sanya:0.74, nanning:0.76, beihai:0.70
+    };
+    const CHAIN_FILTERS = [
+      { label: '刚性 1', type: 'rigid' }, { label: '半刚性 5', type: 'semi' },
+      { label: '非刚性 3', type: 'flex' }, { label: '产业约束', type: 'constraint' }, { label: '海外场景', type: 'overseas' }
+    ];
+    // 由 CHINA_CITY 派生「中国城市节点」（供 findNode 解析）与「中国城市研报」（供 getReport 拾取）
+    const CHINA_CITY_NODES = {};
+    const chinaReportData = {};
+    (function buildChinaNodes() {
+      let i = 0;
+      Object.keys(CHINA_CITY).forEach(function (id) {
+        const c = CHINA_CITY[id];
+        const board = chinaBoardOfProv(c.prov);
+        CHINA_CITY_NODES[id] = {
+          id: id, name: c.name, en: c.en, lat: c.lat, lng: c.lng,
+          desc: c.name + '（' + board + '）区域宏观与产业要点',
+          news: [], rank: 11 + i, score: CHINA_SCORE[id] || 0.6, board: board, prov: c.prov,
+        };
+        const tk = CHINA_TAKE[id] || [];
+        const takeAways = tk.length
+          ? tk.map(function (t) { return { title: t[0], desc: t[1], isImportant: !!t[2] }; })
+          : [{ title: c.name + ' 区域宏观要点（演示）', desc: '数据待研报接入', isImportant: false }];
+        chinaReportData[id] = {
+          takeAways: takeAways,
+          scoreCard: { overall: CHINA_SCORE[id] || 0.6, items: [ { name: '刚需', value: 0.5 }, { name: '景气', value: 0.6 }, { name: '权益', value: 0.55 }, { name: '定价', value: 0.5 } ] },
+          coreInfo: { domestic: [ c.name + ' 本地核心企业（演示）' ], overseas: [ '对应海外同业（演示）' ] },
+          chainMap: {
+            filters: CHAIN_FILTERS,
+            nodes: [
+              { title: c.name + ' 产业链基础', types: ['semi', 'rigid'], subs: [ { title: '半刚性 2', desc: c.desc, types: ['semi'] }, { title: '刚性 1', desc: '核心产能环节（演示）', types: ['rigid'] } ] },
+              { title: '板块联动 · ' + board, types: ['overseas'], subs: [ { title: '海外场景', desc: '对应国际同业与贸易通道（演示）', types: ['overseas'] } ] }
+            ]
+          }
+        };
+        i++;
+      });
+    })();
+    // 中国城市时区统一为 Asia/Shanghai（const 对象可安全 mutate）
+    (function buildChinaTZ() {
+      const tz = {};
+      Object.keys(CHINA_CITY).forEach(function (id) { tz[id] = 'Asia/Shanghai'; });
+      Object.assign(CITY_TZ, tz);
+    })();
+
+    // 节点解析：先查 3D 金融中心节点，再查 2D 港口专属节点，最后查中国城市下钻节点（保证 2D 全部港口/城市可联动）
     function findNode(id) {
-      return MAP_NODES_DATA.find(function (n) { return n.id === id; }) || (PORT_EXTRA_NODES[id] || null);
+      return MAP_NODES_DATA.find(function (n) { return n.id === id; }) || (PORT_EXTRA_NODES[id] || null) || (CHINA_CITY_NODES[id] || null);
     }
     // ⚠️ 以上为近似 2023 年公开统计值（单位：万 TEU），演示用途，待数据组以官方口径核实替换
     const TEU_MIN = PORT_THROUGHPUT.reduce((m, p) => Math.min(m, p.teu), Infinity);
@@ -2147,7 +2371,11 @@
       const labels = document.getElementById('globeLabels');
       const fallback = document.getElementById('globeFallback');
       const map2d = document.getElementById('map2d');
+      const mapChina = document.getElementById('mapChina');
       const legend = document.getElementById('map2dLegend');
+      const chinaLegend = document.getElementById('chinaLegend');
+      const chinaBack = document.getElementById('chinaBackBtn');
+      const chinaHint = document.getElementById('chinaHint');
       const toggle = document.getElementById('viewToggle');
       if (mode === '2d') {
         canvas.style.visibility = 'hidden';
@@ -2155,10 +2383,31 @@
         if (fallback) fallback.style.display = 'none';
         map2d.hidden = false;
         legend.hidden = false;
+        if (mapChina) mapChina.hidden = true;
+        if (chinaBack) chinaBack.hidden = true;
+        if (chinaLegend) chinaLegend.hidden = true;
+        if (chinaHint) chinaHint.hidden = true;
+        hideProvDrawer();
         init2D().then(function () { if (GLOBE.chart2d) { GLOBE.chart2d.resize(); update2DSelection(activeNodeId); } });
+      } else if (mode === 'china') {
+        canvas.style.visibility = 'hidden';
+        labels.style.visibility = 'hidden';
+        if (fallback) fallback.style.display = 'none';
+        map2d.hidden = true;
+        legend.hidden = true;
+        if (mapChina) mapChina.hidden = false;
+        if (chinaBack) chinaBack.hidden = false;
+        if (chinaLegend) chinaLegend.hidden = false;
+        if (chinaHint) chinaHint.hidden = false;
+        initChinaMap().then(function () { if (GLOBE.chartChina) GLOBE.chartChina.resize(); });
       } else {
         map2d.hidden = true;
         legend.hidden = true;
+        if (mapChina) mapChina.hidden = true;
+        if (chinaBack) chinaBack.hidden = true;
+        if (chinaLegend) chinaLegend.hidden = true;
+        if (chinaHint) chinaHint.hidden = true;
+        hideProvDrawer();
         canvas.style.visibility = 'visible';
         labels.style.visibility = 'visible';
       }
@@ -2171,8 +2420,272 @@
       toggle.querySelectorAll('.vt-btn').forEach(function (b) {
         b.addEventListener('click', function () { setView(b.dataset.mode); });
       });
-      window.addEventListener('resize', function () { if (GLOBE.chart2d && GLOBE.mode === '2d') GLOBE.chart2d.resize(); });
+      window.addEventListener('resize', function () {
+        if (GLOBE.chart2d && GLOBE.mode === '2d') GLOBE.chart2d.resize();
+        if (GLOBE.chartChina && GLOBE.mode === 'china') GLOBE.chartChina.resize();
+        if (GLOBE.chartProv && GLOBE.mode === 'china') GLOBE.chartProv.resize();
+      });
     })();
+
+    // V4.9 中国下钻 · 加载中国省级 GeoJSON
+    const CHINA_GEO_URL = 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json';
+    const PROV_GEO_URL = function (adcode) { return 'https://geo.datav.aliyun.com/areas_v3/bound/' + adcode + '_full.json'; };
+    const CHINA_VIEW_CENTER = [104, 35];
+    let _chinaMapPromise = null;
+    function getChinaGeo() {
+      if (window.CHINA_GEO_JSON) return Promise.resolve(window.CHINA_GEO_JSON);
+      if (_chinaMapPromise) return _chinaMapPromise;
+      _chinaMapPromise = fetch(CHINA_GEO_URL).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      }).catch(function (e) { _chinaMapPromise = null; throw e; });
+      return _chinaMapPromise;
+    }
+    function initChinaMap() {
+      if (GLOBE.chartChina) return Promise.resolve(GLOBE.chartChina);
+      const dom = document.getElementById('mapChina');
+      if (!dom || !window.echarts) return Promise.reject(new Error('mapChina 容器或 echarts 未就绪'));
+      const chart = window.echarts.init(dom, null, { renderer: 'canvas' });
+      GLOBE.chartChina = chart;
+      return getChinaGeo().then(function (geoJson) {
+        if (window.echarts.registerMap) window.echarts.registerMap('china', geoJson);
+        const cityData = Object.keys(CHINA_CITY).map(function (id) {
+          const c = CHINA_CITY[id];
+          return { name: c.name, id: id, value: [c.lng, c.lat, CHINA_SCORE[id] || 0.6, c.prov] };
+        });
+        chart.setOption({
+          backgroundColor: 'transparent',
+          tooltip: {
+            trigger: 'item', backgroundColor: 'rgba(8,20,38,.92)', borderColor: '#1f4a78', textStyle: { color: '#cfe4ff' },
+            formatter: function (p) {
+              if (p.seriesType === 'map') {
+                const board = chinaBoardOfProv(p.name);
+                return '<b style="color:#9fd0ff">' + p.name + '</b><br/>' +
+                       '<span style="color:#7fa8d0">板块：</span>' + board + '<br/>' +
+                       '<span style="color:#7fa8d0">提示：</span>双击下钻至 ' + p.name + ' 市级';
+              }
+              if (p.seriesType === 'effectScatter') {
+                return '<b style="color:#00d4ff">' + p.name + '</b><br/>' +
+                       '<span style="color:#7fa8d0">所属：</span>' + (p.value[3] || '') + '<br/>' +
+                       '<span style="color:#7fa8d0">核心度：</span>' + (p.value[2] * 100).toFixed(0);
+              }
+              return p.name;
+            }
+          },
+          geo: {
+            map: 'china', roam: false, zoom: 1.05, aspectScale: 0.92, center: CHINA_VIEW_CENTER,
+            label: { show: true, color: '#cfe4ff', fontSize: 10 },
+            itemStyle: {
+              areaColor: { type: 'radial', x: 0.5, y: 0.5, r: 0.8,
+                colorStops: [ { offset: 0, color: 'rgba(28,68,120,.55)' }, { offset: 1, color: 'rgba(8,22,42,.85)' } ] },
+              borderColor: '#1f6fa8', borderWidth: 1
+            },
+            emphasis: { disabled: false,
+              itemStyle: { areaColor: 'rgba(0,212,255,.28)' },
+              label: { color: '#fff', fontWeight: 600, fontSize: 12 } },
+            regions: CHINA_BOARDS.map(function (b) {
+              return { name: b.provinces, itemStyle: { areaColor: b.color, opacity: 0.62 } };
+            })
+          },
+          series: [
+            { name: '城市节点', type: 'effectScatter', coordinateSystem: 'geo',
+              data: cityData, z: 3, silent: false,
+              symbolSize: function (v) { return 6 + v[2] * 6; },
+              rippleEffect: { period: 4, scale: 3, brushType: 'stroke' },
+              itemStyle: { color: '#00d4ff', shadowBlur: 12, shadowColor: '#00d4ff' },
+              label: { show: true, position: 'right', color: '#cfe4ff', fontSize: 11, formatter: '{b}' },
+              emphasis: { scale: 1.3, itemStyle: { color: '#ffd24a', shadowColor: '#ffd24a' } } }
+          ]
+        });
+        chart.on('click', function (e) {
+          if (e.seriesType === 'effectScatter' && e.data && e.data.id) {
+            selectNode(e.data.id);
+            if (e.event && e.event.stopPropagation) e.event.stopPropagation();
+          }
+        });
+        chart.getZr().on('dblclick', function (e) { if (!e.target) setView('2d'); });
+        chart.on('dblclick', function (e) {
+          if (e.seriesType === 'map' && e.name) {
+            showProvDrawer(e.name);
+            if (e.event && e.event.stopPropagation) e.event.stopPropagation();
+          }
+        });
+        return chart;
+      }).catch(function (e) {
+        renderChinaOffline();
+        console.warn('[V4.9] 中国 GeoJSON 加载失败，已切换离线模式:', e.message);
+        return null;
+      });
+    }
+    function renderChinaOffline() {
+      const dom = document.getElementById('mapChina');
+      const chart = GLOBE.chartChina || (GLOBE.chartChina = window.echarts.init(dom, null, { renderer: 'canvas' }));
+      const cityData = Object.keys(CHINA_CITY).map(function (id) {
+        const c = CHINA_CITY[id];
+        return { name: c.name, id: id, value: [c.lng, c.lat, CHINA_SCORE[id] || 0.6, c.prov] };
+      });
+      chart.setOption({
+        backgroundColor: 'transparent',
+        geo: { map: 'china-offline', roam: false, zoom: 1.05, aspectScale: 0.92, center: CHINA_VIEW_CENTER, show: false },
+        series: [
+          { type: 'effectScatter', coordinateSystem: 'geo',
+            data: cityData,
+            symbolSize: function (v) { return 6 + v[2] * 6; },
+            itemStyle: { color: '#00d4ff', shadowBlur: 12, shadowColor: '#00d4ff' },
+            label: { show: true, position: 'right', color: '#cfe4ff', fontSize: 11 } }
+        ]
+      });
+      if (!document.getElementById('chinaOfflineTip')) {
+        const tip = document.createElement('div');
+        tip.id = 'chinaOfflineTip';
+        tip.style.cssText = 'position:absolute;left:50%;top:80px;transform:translateX(-50%);' +
+          'background:rgba(60,28,8,.85);border:1px solid #a85a1a;border-radius:8px;' +
+          'padding:8px 16px;color:#ffd9a8;font-size:12px;z-index:18;';
+        tip.textContent = '⚠ 中国地图 GeoJSON 加载失败（需联网或 vendor/data/china-geo.js）。城市节点与板块图例仍可查看。';
+        document.getElementById('mapChina').appendChild(tip);
+      }
+    }
+
+    // V4.9 板块图例 + 返回按钮 + 抽屉关闭 + 世界双击下钻
+    (function fillChinaLegend() {
+      const el = document.getElementById('chinaLegend');
+      if (!el) return;
+      let html = '<h4>经济地理板块</h4>';
+      CHINA_BOARDS.forEach(function (b) {
+        html += '<div class="row"><i class="dot" style="background:' + b.color + '"></i>' + b.name + '</div>';
+      });
+      el.innerHTML = html;
+    })();
+    (function bindChinaUI() {
+      const back = document.getElementById('chinaBackBtn');
+      if (back) back.addEventListener('click', function () { setView('2d'); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && GLOBE.chartProv) hideProvDrawer();
+      });
+    })();
+    (function bindWorldDblclick() {
+      const tryHook = function () {
+        const chart = GLOBE.chart2d;
+        if (!chart) { setTimeout(tryHook, 200); return; }
+        if (chart.__chinaHooked) return;
+        chart.__chinaHooked = true;
+        chart.on('dblclick', function (p) {
+          if (GLOBE.mode !== '2d') return;
+          if (p && p.name && /^(中国|China)$/i.test(p.name + '')) setView('china');
+        });
+        let lastClick = 0;
+        chart.getZr().on('click', function () {
+          const now = Date.now();
+          if (now - lastClick < 320) { lastClick = 0; if (GLOBE.mode === '2d') setView('china'); return; }
+          lastClick = now;
+        });
+      };
+      tryHook();
+    })();
+    // 省级市级抽屉
+    const PROV_DRAWER_ID = 'provDrawer';
+    function showProvDrawer(provName) {
+      const adcode = CHINA_PROV_ADCODE[provName];
+      if (!adcode) { showProvDrawerFallback(provName, '该省份 adcode 未配置'); return; }
+      let drawer = document.getElementById(PROV_DRAWER_ID);
+      if (!drawer) {
+        drawer = document.createElement('div');
+        drawer.id = PROV_DRAWER_ID;
+        drawer.className = 'prov-drawer';
+        drawer.innerHTML =
+          '<div class="prov-drawer-head"><span class="prov-title">' + esc(provName) + ' · 市级行政区划</span>' +
+          '<button type="button" id="provDrawerClose" class="prov-close" aria-label="关闭">×</button></div>' +
+          '<div class="prov-drawer-body" id="provDrawerBody"></div>';
+        document.getElementById('mapChina').appendChild(drawer);
+        document.getElementById('provDrawerClose').addEventListener('click', hideProvDrawer);
+      } else {
+        drawer.querySelector('.prov-title').textContent = provName + ' · 市级行政区划';
+      }
+      const body = document.getElementById('provDrawerBody');
+      body.innerHTML = '<div class="prov-loading">加载 ' + esc(provName) + ' 市级数据…</div>';
+      fetch(PROV_GEO_URL(adcode)).then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      }).then(function (provGeo) {
+        const cityFeatures = (provGeo.features || []).map(function (f) {
+          return { name: f.properties && f.properties.name, adcode: f.properties && f.properties.adcode };
+        }).filter(function (f) { return f.name; });
+        const cityList = cityFeatures.map(function (f) {
+          const nodeId = Object.keys(CHINA_CITY).find(function (id) { return CHINA_CITY[id].name === f.name; });
+          const inData = !!nodeId;
+          return '<span class="prov-city-chip' + (inData ? ' in-data' : '') + '" data-name="' + esc(f.name) + '">' + esc(f.name) + (inData ? ' · ★' : '') + '</span>';
+        }).join('');
+        body.innerHTML = '<div id="provMapMini" class="prov-map-mini"></div>' +
+          '<div class="prov-city-list">' + (cityList || '<span class="prov-loading">无市级数据</span>') + '</div>';
+        requestAnimationFrame(function () { drawer.classList.add('open'); });
+        const mapName = 'china_' + adcode;
+        if (window.echarts.registerMap) window.echarts.registerMap(mapName, provGeo);
+        const mapDom = document.getElementById('provMapMini');
+        if (GLOBE.chartProv) { try { GLOBE.chartProv.dispose(); } catch (e) {} }
+        const chart = window.echarts.init(mapDom, null, { renderer: 'canvas' });
+        GLOBE.chartProv = chart;
+        let provCenter = [116, 39];
+        for (let i = 0; i < (provGeo.features || []).length; i++) {
+          const c = provGeo.features[i].properties && provGeo.features[i].properties.cp;
+          if (c && c[0] && c[1]) { provCenter = c; break; }
+        }
+        chart.setOption({
+          backgroundColor: 'transparent',
+          tooltip: { trigger: 'item', backgroundColor: 'rgba(8,20,38,.92)', borderColor: '#1f4a78', textStyle: { color: '#cfe4ff' },
+            formatter: function (p) { return '<b style="color:#9fd0ff">' + p.name + '</b>'; } },
+          geo: {
+            map: mapName, roam: true, zoom: 1.1, aspectScale: 0.92, center: provCenter,
+            label: { show: true, color: '#cfe4ff', fontSize: 10 },
+            itemStyle: { areaColor: 'rgba(28,68,120,.55)', borderColor: '#1f6fa8', borderWidth: 1 },
+            emphasis: { itemStyle: { areaColor: 'rgba(0,212,255,.45)' }, label: { color: '#fff', fontWeight: 600 } }
+          }
+        });
+        body.querySelectorAll('.prov-city-chip').forEach(function (chip) {
+          chip.addEventListener('click', function () {
+            const nm = chip.dataset.name;
+            const id = Object.keys(CHINA_CITY).find(function (k) { return CHINA_CITY[k].name === nm; });
+            if (id) { selectNode(id); chip.classList.add('active'); }
+          });
+        });
+      }).catch(function (e) {
+        showProvDrawerFallback(provName, e.message || '网络错误');
+      });
+    }
+    function showProvDrawerFallback(provName, reason) {
+      let drawer = document.getElementById(PROV_DRAWER_ID);
+      if (!drawer) {
+        drawer = document.createElement('div');
+        drawer.id = PROV_DRAWER_ID;
+        drawer.className = 'prov-drawer';
+        drawer.innerHTML =
+          '<div class="prov-drawer-head"><span class="prov-title">' + esc(provName) + ' · 市级行政区划</span>' +
+          '<button type="button" id="provDrawerClose" class="prov-close" aria-label="关闭">×</button></div>' +
+          '<div class="prov-drawer-body" id="provDrawerBody"></div>';
+        document.getElementById('mapChina').appendChild(drawer);
+        document.getElementById('provDrawerClose').addEventListener('click', hideProvDrawer);
+      }
+      document.getElementById('provDrawerBody').innerHTML =
+        '<div class="prov-loading">⚠ 加载 ' + esc(provName) + ' 市级数据失败：' + esc(reason) +
+        '<br/><small>需联网到 geo.datav.aliyun.com；或联系工程师在 vendor/data/ 内嵌该省 GeoJSON。</small></div>';
+      requestAnimationFrame(function () { drawer.classList.add('open'); });
+    }
+    function hideProvDrawer() {
+      const drawer = document.getElementById(PROV_DRAWER_ID);
+      if (!drawer) return;
+      drawer.classList.remove('open');
+      if (GLOBE.chartProv) { try { GLOBE.chartProv.dispose(); } catch (e) {} GLOBE.chartProv = null; }
+      setTimeout(function () { if (drawer && drawer.parentNode) drawer.parentNode.removeChild(drawer); }, 300);
+    }
+    // 省份 adcode 表（datav.aliyun.com 标准 adcode）
+    const CHINA_PROV_ADCODE = {
+      '北京': 110000, '天津': 120000, '河北': 130000, '山西': 140000, '内蒙古': 150000,
+      '辽宁': 210000, '吉林': 220000, '黑龙江': 230000,
+      '上海': 310000, '江苏': 320000, '浙江': 330000, '安徽': 340000, '福建': 350000, '江西': 360000, '山东': 370000,
+      '河南': 410000, '湖北': 420000, '湖南': 430000, '广东': 440000, '广西': 450000, '海南': 460000,
+      '重庆': 500000, '四川': 510000, '贵州': 520000, '云南': 530000, '西藏': 540000,
+      '陕西': 610000, '甘肃': 620000, '青海': 630000, '宁夏': 640000, '新疆': 650000,
+      '台湾': 710000, '香港': 810000, '澳门': 820000
+    };
 
   </script>
 </body>
