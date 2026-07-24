@@ -150,6 +150,19 @@
       }
     }
     .globe-label.hover { color: var(--cyan); border-color: var(--cyan); }
+    .route-tip {
+      position: absolute; pointer-events: none; z-index: 30; max-width: 260px;
+      padding: 8px 11px; border-radius: 10px;
+      background: rgba(7, 26, 47, 0.94); border: 1px solid rgba(0, 212, 255, 0.45);
+      color: #cfe9f5; font-size: 12px; line-height: 1.55; white-space: nowrap;
+      box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+      transform: translate(-50%, calc(-100% - 16px));
+      opacity: 0; transition: opacity 0.12s ease;
+    }
+    .route-tip.show { opacity: 1; }
+    .route-tip b { color: #00d4ff; }
+    .route-tip .via { color: #7fd6f0; }
+    .route-tip .cnt { color: #9fe9c5; }
     .globe-fallback {
       position: absolute; inset: 0; display: grid; place-items: center;
       color: var(--text-300); font-size: 13px; text-align: center; padding: 24px;
@@ -790,45 +803,118 @@
       return group;
     }
 
-    // 节点间流动光弧 + 彗星点
+    // ===== V4.2 真实国际集装箱班轮航线（现实航路点，非实时 AIS） =====
+    // path: [[lat, lng], ...] 真实港口/海峡/运河经纬度，使航线贴合海岸线、绕开陆块。
+    // vessel_count: 由所连港口吞吐量排名决定的演示船队规模（非真实在航船只数）。
+    const SHIPPING_ROUTES = [
+      {
+        id: 'asia_europe', name: '亚欧航线', color: 0x00d4ff,
+        via: ['台湾海峡','南海','马六甲海峡','印度洋','红海','苏伊士运河','地中海','直布罗陀海峡'],
+        vessel_count: 45,
+        path: [
+          [31.23,121.47],[30.5,123.5],[24.5,119.5],[15.0,112.0],[7.5,110.0],
+          [1.43,102.9],[1.29,103.85],[2.0,98.0],[6.0,90.0],[10.0,75.0],
+          [12.5,60.0],[13.0,45.0],[12.6,43.4],[20.0,38.0],[27.5,34.0],
+          [30.0,32.35],[34.0,28.0],[35.5,18.0],[37.5,5.0],[36.0,-5.5],
+          [40.0,-9.0],[45.0,-10.0],[49.5,-5.0],[51.95,4.14]
+        ]
+      },
+      {
+        id: 'transpacific', name: '跨太平洋航线', color: 0x3b82f6,
+        via: ['东海','北太平洋','白令海域'],
+        vessel_count: 42,
+        path: [
+          [31.23,121.47],[31.0,126.0],[35.1,129.04],[37.0,142.0],[40.0,155.0],
+          [45.0,175.0],[50.0,-170.0],[48.0,-150.0],[40.0,-130.0],[33.74,-118.27]
+        ]
+      },
+      {
+        id: 'intra_asia_sea', name: '泛东南亚区域航线', color: 0x2dd4bf,
+        via: ['南海'],
+        vessel_count: 30,
+        path: [
+          [1.29,103.85],[5.0,108.0],[10.0,110.0],[12.0,114.0],
+          [22.3,114.17],[23.13,113.26],[22.54,114.06]
+        ]
+      },
+      {
+        id: 'asia_europe_cape', name: '亚欧航线(好望角/红海避险)', color: 0x38bdf8,
+        via: ['马六甲海峡','印度洋','好望角'],
+        vessel_count: 16,
+        path: [
+          [1.29,103.85],[6.0,90.0],[10.0,75.0],[12.5,60.0],[13.0,45.0],
+          [10.0,50.0],[5.0,45.0],[0.0,42.0],[-10.0,45.0],[-20.0,40.0],
+          [-34.8,18.4],[-35.0,-5.0],[0.0,-20.0],[15.0,-30.0],[35.0,-40.0],
+          [45.0,-10.0],[49.5,-5.0],[51.95,4.14]
+        ]
+      },
+      {
+        id: 'transatlantic', name: '跨大西洋航线', color: 0x60a5fa,
+        via: ['北大西洋'],
+        vessel_count: 36,
+        path: [
+          [40.67,-74.04],[45.0,-50.0],[50.0,-30.0],[53.0,-10.0],[50.0,0.0],[51.5,-0.1]
+        ]
+      },
+      {
+        id: 'oceania', name: '大洋洲航线(托雷斯海峡)', color: 0x34d399,
+        via: ['珊瑚海','托雷斯海峡','阿拉弗拉海'],
+        vessel_count: 14,
+        path: [
+          [-33.86,151.2],[-20.0,150.0],[-10.5,142.0],[-8.0,135.0],[-8.0,125.0],
+          [-3.0,112.0],[1.29,103.85]
+        ]
+      },
+      {
+        id: 'persian_gulf', name: '波斯湾/中东航线(霍尔木兹)', color: 0x22d3ee,
+        via: ['阿拉伯海','霍尔木兹海峡'],
+        vessel_count: 22,
+        path: [
+          [19.07,72.87],[15.0,68.0],[20.0,62.0],[24.0,58.0],[26.5,56.5],
+          [26.0,52.0],[25.27,55.3]
+        ]
+      }
+    ];
+
+    // ===== V4.2 真实班轮航线（替代原 HUB-to-HUB 两点弧线） =====
     function buildFlowArcs(group, radius) {
-      const pairs = [
-        ['beijing','shanghai'],['shanghai','tokyo'],['beijing','singapore'],
-        ['singapore','mumbai'],['mumbai','dubai'],['dubai','sydney'],
-        ['guangzhou','singapore'],['chengdu','xian'],['beijing','chengdu'],
-        ['tokyo','sydney'],['beijing','dubai'],['shanghai','mumbai'],
-        ['guangzhou','tokyo'],['xian','beijing'],
-        ['newyork','london'],['london','frankfurt'],['newyork','tokyo'],
-        ['newyork','hongkong'],['hongkong','shanghai'],['hongkong','singapore'],
-        ['london','paris'],['zurich','frankfurt'],['newyork','sanfrancisco'],
-        ['chicago','newyork'],['sanfrancisco','tokyo'],['toronto','newyork'],
-        ['frankfurt','zurich'],['shenzhen','hongkong'],['paris','frankfurt'],
-      ];
-      const byId = {};
-      MAP_NODES_DATA.forEach(n => { byId[n.id] = n; });
       const arcs = [];
-      pairs.forEach(([a, b]) => {
-        const na = byId[a], nb = byId[b];
-        if (!na || !nb) return;
-        const start = latLngToVector3(na.lat, na.lng, radius);
-        const end = latLngToVector3(nb.lat, nb.lng, radius);
-        const dist = start.distanceTo(end);
-        const mid = start.clone().add(end).multiplyScalar(0.5)
-          .normalize().multiplyScalar(radius * (1 + dist * 0.4));
-        const curve = new THREE.QuadraticBezierCurve3(start, mid, end);
-        const pts = curve.getPoints(64);
+      const routeHits = [];
+      SHIPPING_ROUTES.forEach(route => {
+        const pts = route.path.map(([lat, lng]) => latLngToVector3(lat, lng, radius));
+        // CatmullRom 穿过所有真实航路点，生成贴合海岸线的平滑曲线（废弃 QuadraticBezier 两点拉弧）
+        const curve = new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
+        const segN = Math.max(80, route.path.length * 16);
+        // 贴地处理：将采样点重新投影到恒定半径，避免长段弦线穿入地球（QA#2 不穿模到陆地）
+        const surfPts = curve.getPoints(segN).map(p => p.clone().normalize().multiplyScalar(radius));
+        const surfCurve = new THREE.CatmullRomCurve3(surfPts, false, 'catmullrom', 0.5);
         const line = new THREE.Line(
-          new THREE.BufferGeometry().setFromPoints(pts),
-          new THREE.LineBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending, depthWrite: false })
+          new THREE.BufferGeometry().setFromPoints(surfPts),
+          new THREE.LineBasicMaterial({ color: route.color, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending, depthWrite: false })
         );
         group.add(line);
-        const comet = new THREE.Mesh(
-          new THREE.SphereGeometry(radius * 0.014, 12, 12),
-          new THREE.MeshBasicMaterial({ color: 0xaff2ff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })
+        // 不可见加粗管线：hover 命中（沿用节点 opacity:0 透明命中球手法，保证可被射线拾取）
+        const tube = new THREE.Mesh(
+          new THREE.TubeGeometry(surfCurve, segN, radius * 0.03, 6, false),
+          new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
         );
-        group.add(comet);
-        arcs.push({ curve, comet, t: Math.random(), speed: 0.1 + Math.random() * 0.12 });
+        tube.userData.route = route;
+        group.add(tube);
+        routeHits.push(tube);
+        // 船队：渲染数量按吞吐量封顶（3~12），tooltip 显示真实 vessel_count
+        const fleet = Math.max(3, Math.min(12, Math.round(route.vessel_count / 4)));
+        const comets = [];
+        for (let i = 0; i < fleet; i++) {
+          const comet = new THREE.Mesh(
+            new THREE.SphereGeometry(radius * 0.012, 10, 10),
+            new THREE.MeshBasicMaterial({ color: 0xaff2ff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })
+          );
+          group.add(comet);
+          comets.push({ mesh: comet, t: i / fleet, speed: 0.05 + Math.random() * 0.05 });
+        }
+        arcs.push({ curve: surfCurve, line, tube, route, comets });
       });
+      GLOBE.routeHits = routeHits;
       return arcs;
     }
 
@@ -1065,6 +1151,7 @@
         GLOBE.velX = GLOBE.velY = 0;
         GLOBE.fly = null;
         GLOBE.hoverId = null;
+        hideRouteTip();
         const p = getPointer(e);
         lastX = downX = p.x; lastY = downY = p.y;
         canvas.style.cursor = 'grabbing';
@@ -1144,6 +1231,7 @@
 
       const onLeave = () => {
         GLOBE.hoverId = null;
+        hideRouteTip();
         if (!GLOBE.isDragging) canvas.style.cursor = 'grab';
       };
 
@@ -1155,6 +1243,33 @@
       canvas.addEventListener('touchmove', onPointerMove, { passive: true });
       canvas.addEventListener('touchend', onPointerUp);
       canvas.addEventListener('wheel', onWheel, { passive: false });
+
+      // ===== V4.2 航线 hover Tooltip =====
+      const tip = document.createElement('div');
+      tip.className = 'route-tip';
+      GLOBE.wrap.appendChild(tip);
+      GLOBE.routeTip = tip;
+      function showRouteTip(cx, cy, r) {
+        tip.innerHTML = '<b>' + r.name + '</b> · 现实黄金航道<br><span class="via">途经 ' + r.via.join(' · ') + '</span><br><span class="cnt">集装箱周班次(演示) ' + r.vessel_count + '</span>';
+        const wr = GLOBE.wrap.getBoundingClientRect();
+        tip.style.left = (cx - wr.left) + 'px';
+        tip.style.top = (cy - wr.top) + 'px';
+        tip.classList.add('show');
+      }
+      function hideRouteTip() { tip.classList.remove('show'); }
+      const onRouteHover = (e) => {
+        if (GLOBE.isDragging || !GLOBE.ready || !GLOBE.routeHits || !GLOBE.routeHits.length) { hideRouteTip(); return; }
+        const rect = canvas.getBoundingClientRect();
+        const ndc = new THREE.Vector2(
+          ((e.clientX - rect.left) / rect.width) * 2 - 1,
+          -((e.clientY - rect.top) / rect.height) * 2 + 1
+        );
+        GLOBE.raycaster.setFromCamera(ndc, GLOBE.camera);
+        const hits = GLOBE.raycaster.intersectObjects(GLOBE.routeHits, false);
+        if (hits.length) showRouteTip(e.clientX, e.clientY, hits[0].object.userData.route);
+        else hideRouteTip();
+      };
+      canvas.addEventListener('mousemove', onRouteHover);
     }
 
     function animateGlobe() {
@@ -1265,13 +1380,16 @@
       });
       if (clearPulse) GLOBE.selectPulse = null;
 
-      // 流动光弧彗星点沿线移动
+      // 真实航线：船队沿 CatmullRom 曲线流动（到港后从起点重生，形成持续流动）
       if (GLOBE.arcs) {
         for (let i = 0; i < GLOBE.arcs.length; i++) {
           const a = GLOBE.arcs[i];
-          a.t += a.speed * 0.016;
-          if (a.t > 1) a.t -= 1;
-          a.curve.getPoint(a.t, a.comet.position);
+          for (let k = 0; k < a.comets.length; k++) {
+            const c = a.comets[k];
+            c.t += c.speed * 0.016;
+            if (c.t > 1) c.t -= 1;
+            a.curve.getPoint(c.t, c.mesh.position);
+          }
         }
       }
       GLOBE.renderer.render(GLOBE.scene, GLOBE.camera);
