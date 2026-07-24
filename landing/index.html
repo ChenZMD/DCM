@@ -1663,19 +1663,41 @@
       return _2dAssets;
     }
     function build2DOption() {
-      const useMerc = window.echarts && echarts.version && parseFloat(echarts.version) >= 5.1;
       const ports = PORT_THROUGHPUT.map(p => ({ name: p.name, value: [p.lng, p.lat, p.teu], rank: p.rank }));
-      const routes = SHIPPING_ROUTES.map(r => ({
-        name: r.name, coords: r.path.map(([lat, lng]) => [lng, lat]),
-        via: r.via, vessel: r.vessel_count, color: '#' + r.color.toString(16).padStart(6, '0'),
-      }));
+      // 将跨越 180° 经线的航线在边界处拆段，避免 2D 平面直线穿越大陆（穿模）
+      // 注：geo 默认等距圆柱投影，经度范围 [-180,180]，跨 180° 需拆成两段贴边
+      function splitAntimeridian(coords) {
+        const segs = []; let cur = [coords[0]];
+        for (let i = 1; i < coords.length; i++) {
+          const a = coords[i - 1], b = coords[i];
+          if (Math.abs(b[0] - a[0]) > 180) {
+            const sign = a[0] > 0 ? 1 : -1, edge = sign * 180;
+            const t = (edge - a[0]) / (b[0] - a[0]);
+            cur.push([edge, a[1] + (b[1] - a[1]) * t]);
+            segs.push(cur);
+            const edge2 = -edge;
+            const t2 = (edge2 - b[0]) / (a[0] - b[0]);
+            cur = [[edge2, b[1] + (a[1] - b[1]) * t2], b];
+          } else { cur.push(b); }
+        }
+        segs.push(cur); return segs;
+      }
+      const routeData = [];
+      SHIPPING_ROUTES.forEach(r => {
+        const lngLat = r.path.map(([lat, lng]) => [lng, lat]);
+        splitAntimeridian(lngLat).forEach(seg => {
+          routeData.push({
+            name: r.name, coords: seg, via: r.via, vessel: r.vessel_count,
+            color: '#' + r.color.toString(16).padStart(6, '0'),
+          });
+        });
+      });
       const geoOpt = {
         map: 'world', roam: true, center: [0, 20], zoom: 1.5,
         itemStyle: { areaColor: '#0e1a34', borderColor: 'rgba(120,160,220,0.22)', borderWidth: 0.6 },
         emphasis: { itemStyle: { areaColor: '#1c3466', borderColor: 'rgba(0,212,255,0.6)', borderWidth: 1.2 }, label: { show: false } },
         label: { show: false }, scaleLimit: { min: 1, max: 12 },
       };
-      if (useMerc) geoOpt.projection = { type: 'mercator' };
       return {
         backgroundColor: 'transparent',
         tooltip: {
@@ -1711,7 +1733,7 @@
             name: '真实航线', type: 'lines', coordinateSystem: 'geo', geoIndex: 0, polyline: true,
             effect: { show: true, period: 5, trailLength: 0.22, color: '#aef6ff', symbolSize: 4 },
             lineStyle: { width: 1.4, opacity: 0.55, curveness: 0 },
-            data: routes.map(r => ({ coords: r.coords, name: r.name, via: r.via, vessel: r.vessel, lineStyle: { color: r.color } })),
+            data: routeData.map(d => ({ coords: d.coords, name: d.name, via: d.via, vessel: d.vessel, lineStyle: { color: d.color } })),
             zlevel: 2,
           },
         ],
