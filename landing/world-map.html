@@ -12,7 +12,7 @@
     --border:rgba(120,160,220,0.16);
     --border-strong:rgba(120,170,230,0.38);
     --text:#eaf1fb; --muted:#9fb2cc; --faint:#6f86a8;
-    --accent:#4fd1e3; --accent-2:#5b9bff; --gold:#ffd666; --good:#3fd29a; --warn:#ff9d6b;
+    --accent:#4fd1e3; --accent-2:#5b9bff; --gold:#ffd666; --good:#3fd29a; --warn:#ff9d6b; --danger:#ff6f86;
     --base:#172339; --base-border:#2c3c5e;
     --ease:cubic-bezier(0.22,0.61,0.36,1);
   }
@@ -89,30 +89,19 @@
   .reset:hover{background:rgba(79,209,227,0.16);}
   .reset .ric{width:14px;height:14px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 
-  /* 侧栏（新闻面板） */
+  /* 侧栏（城市信息 + 新闻面板；排名榜已移除，新闻面板 flex:1 填充其腾出的区域） */
   .side{
     width:372px;flex-shrink:0;border-left:1px solid var(--border);
-    background:rgba(8,14,32,0.5);padding:20px;overflow-y:auto;
+    background:rgba(8,14,32,0.5);padding:20px;
+    display:flex;flex-direction:column;min-height:0;overflow:hidden;
   }
   .side h2{font-size:16px;margin-bottom:4px;color:#bfe6f5;display:flex;align-items:center;gap:8px;}
   /* 节点呼吸动画 */
   @keyframes nodePulse{0%{box-shadow:0 0 0 0 rgba(255,214,102,0.7);}70%{box-shadow:0 0 0 14px rgba(255,214,102,0);}100%{box-shadow:0 0 0 0 rgba(255,214,102,0);}}
   .node-pulse{animation:nodePulse 1.8s ease-out infinite;}
 
-  /* 排名榜 */
-  .rank-title{font-size:13px;color:var(--muted);margin:18px 0 8px;display:flex;justify-content:space-between;align-items:center;}
-  .rank-title .dim{color:var(--faint);font-size:11px;}
-  .rank{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;cursor:pointer;transition:.16s var(--ease);border:1px solid transparent;}
-  .rank:hover{background:rgba(79,209,227,0.1);border-color:rgba(79,209,227,0.25);}
-  .rank .no{width:20px;height:20px;border-radius:6px;background:rgba(120,160,220,0.16);color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-  .rank.top1 .no{background:linear-gradient(135deg,#ffd666,#ffae3b);color:#3a2a00;}
-  .rank.top2 .no{background:linear-gradient(135deg,#cfd8e6,#9fb0c8);color:#1a2233;}
-  .rank.top3 .no{background:linear-gradient(135deg,#e0a06a,#c47e42);color:#2a1600;}
-  .rank .nm{flex:1;font-size:13px;}
-  .rank .nm small{color:var(--faint);font-size:10px;display:block;}
-  .rank .val{font-size:13px;color:var(--accent-2);font-variant-numeric:tabular-nums;}
-  .rank.active{background:rgba(91,155,255,0.16);border-color:rgba(91,155,255,0.4);}
-
+  /* 排名榜样式已移除：2D 视图不再展示「全球金融中心排名」列表（需求：删除排名板块，新闻面板接管其空间） */
+  /* .src 仅用于国家详情的数据来源脚注（非排名），保留基础样式 */
   .src{font-size:11px;color:var(--faint);line-height:1.6;margin-top:14px;border-top:1px solid var(--border);padding-top:12px;}
 
   /* 移动端底部抽屉 */
@@ -130,7 +119,80 @@
   }
   .side .close{display:none;position:absolute;top:14px;right:16px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;}
   .errbox{display:flex;align-items:center;justify-content:center;height:100%;color:#ffb3b3;font-size:14px;text-align:center;padding:30px;line-height:1.8;}
+
+  /* ===== 全球金融中心新闻板块（与 3D 地球视图统一视觉/交互） ===== */
+  .news-block{ margin-top:18px; padding-top:16px; border-top:1px solid var(--border);
+    flex:1; min-height:0; display:flex; flex-direction:column; }
+  .news-panel-head{ margin-bottom:14px; flex-shrink:0; }
+  .news-panel-city{ font-size:18px; font-weight:800; color:var(--text); letter-spacing:-.3px; }
+  .news-panel-sub{ font-size:11px; color:var(--faint); margin-top:2px; letter-spacing:.3px; }
+  .news-panel-meta{ font-size:12px; color:var(--faint); margin-top:5px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .news-panel-live{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:1px 7px; border-radius:999px; background:rgba(255,92,124,.16); color:var(--danger); }
+  .news-panel-live .live-dot{ width:5px; height:5px; border-radius:50%; background:var(--danger); animation:pulse 1.2s ease-out infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
+  .news-panel-list{ display:flex; flex-direction:column; gap:8px; transition:opacity .3s ease, transform .3s ease;
+    flex:1; min-height:0; overflow-y:auto; padding-right:4px; }
+  .news-panel-list.leaving{ opacity:0; transform:translateY(-8px); }
+  .news-panel-list.entering{ opacity:0; transform:translateY(8px); }
+  .news-item{ padding:12px 14px; border-radius:10px; background:rgba(142,167,192,.06); border:1px solid var(--border); cursor:default; transition:all .22s ease; }
+  .news-item:hover{ background:rgba(79,209,227,.1); border-color:rgba(79,209,227,.5); transform:translateX(-3px); }
+  .news-item .news-title{ font-size:13px; font-weight:600; color:var(--text); line-height:1.55; margin-bottom:6px; }
+  .news-item .news-meta{ display:flex; align-items:center; gap:8px; font-size:11px; color:var(--faint); }
+  .news-tag{ display:inline-block; font-size:10px; font-weight:600; padding:1px 6px; border-radius:4px; letter-spacing:.3px; }
+  .news-tag.hot{ background:rgba(255,150,100,.16); color:var(--warn); }
+  .news-tag.live{ background:rgba(255,92,124,.18); color:var(--danger); }
+  .news-tag.policy{ background:rgba(59,130,246,.14); color:#7da5e8; }
+  .news-tag.finance{ background:rgba(59,130,246,.14); color:#7da5e8; }
+  .news-tag.industry{ background:rgba(180,160,255,.14); color:#b4a0ff; }
+  .news-tag.energy{ background:rgba(255,170,50,.14); color:var(--warn); }
+  .news-tag.alert{ background:rgba(255,92,124,.18); color:var(--danger); }
+  .news-tag.update{ background:rgba(54,224,160,.14); color:var(--good); }
+  .news-tag.trade{ background:rgba(54,224,160,.14); color:var(--good); }
+  .news-tag.resource{ background:rgba(255,170,50,.14); color:var(--warn); }
+  /* V3.0 维度标签：10 个宏观维度专属色卡（与重要性标签组成双标签） */
+  .news-tags-row{ display:flex; align-items:center; gap:6px; margin-bottom:6px; flex-wrap:wrap; }
+  .dimension-tag{ display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:500; color:#fff; line-height:1.5; letter-spacing:.3px; }
+  .dimension-tag.politics{ background:#EF4444; }
+  .dimension-tag.geopolitics{ background:#8B5CF6; } /* 紫色 - 用户确认按 spec 用（项目 P0 原禁紫，此处放宽） */
+  .dimension-tag.monetary{ background:#F97316; }
+  .dimension-tag.supply-chain{ background:#14B8A6; }
+  .dimension-tag.free-trade{ background:#22C55E; }
+  .dimension-tag.tech{ background:#3B82F6; }
+  .dimension-tag.energy{ background:#D97706; }
+  .dimension-tag.industry{ background:#6366F1; }
+  .dimension-tag.crypto{ background:#EAB308; }
+  .dimension-tag.macro{ background:#6B7280; }
+  /* 维度筛选条 */
+  .news-filter{ display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 14px; flex-shrink:0; }
+  .news-filter .chip{ font-size:11px; padding:3px 10px; border-radius:999px; border:1px solid var(--border); color:var(--faint); cursor:pointer; transition:all .16s ease; background:transparent; }
+  .news-filter .chip:hover{ border-color:rgba(79,209,227,.5); color:var(--accent); }
+  .news-filter .chip.active{ background:var(--accent); color:#04121a; border-color:var(--accent); font-weight:600; }
+  .news-rank{ font-size:10px; font-weight:700; color:var(--faint); margin-right:6px; }
+  .news-item.top{ border-left:2px solid var(--warn); }
+  .news-item.top .news-rank{ color:var(--warn); }
+  .news-item.top1 .news-rank{ color:var(--danger); }
+  .news-panel-foot{ margin-top:16px; text-align:center; font-size:11px; color:var(--faint); letter-spacing:1px; flex-shrink:0; }
+  .news-panel-foot::before,.news-panel-foot::after{ content:""; display:inline-block; width:22px; height:1px; background:var(--border); vertical-align:middle; margin:0 10px; }
+  .skeleton-item{ padding:12px 14px; border-radius:10px; background:rgba(142,167,192,.06); border:1px solid var(--border); margin-bottom:8px; }
+  .skeleton-line{ height:10px; border-radius:5px; margin-bottom:8px; background:linear-gradient(90deg,rgba(142,167,192,.10) 25%,rgba(142,167,192,.22) 37%,rgba(142,167,192,.10) 63%); background-size:400% 100%; animation:skeletonShimmer 1.2s ease-in-out infinite; }
+  .skeleton-line.short{ width:55%; }
+  .skeleton-line:last-child{ margin-bottom:0; }
+  @keyframes skeletonShimmer{ 0%{background-position:100% 0} 100%{background-position:0 0} }
+  .city-clock{ color:var(--muted); font-weight:600; }
+  .demo-pill{ font-size:10px; font-weight:600; padding:1px 7px; border-radius:999px; background:rgba(142,167,192,.12); color:var(--faint); }
+  .realtime-pill{ display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:600; padding:1px 7px; border-radius:999px; background:rgba(54,224,160,.14); color:var(--good); }
+  .realtime-pill .rt-dot{ width:5px; height:5px; border-radius:50%; background:var(--good); animation:pulse 1.2s ease-out infinite; }
+  .news-empty{ text-align:center; color:var(--faint); font-size:13px; line-height:1.8; padding:26px 12px; border:1px dashed var(--border); border-radius:10px; }
+  .news-empty small{ display:block; font-size:11px; margin-top:6px; color:var(--faint); opacity:.85; }
+  @media (prefers-reduced-motion: reduce){
+    .news-item{ transition:none; }
+    .news-item:hover{ transform:none; }
+    .news-panel-live .live-dot{ animation:none; }
+    .news-panel-list{ transition:none; }
+    .skeleton-line{ animation:none; }
+  }
 </style>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23071a2f'/><circle cx='16' cy='16' r='9' fill='none' stroke='%2300d4ff' stroke-width='2'/><text x='16' y='21' font-size='12' text-anchor='middle' fill='%2300d4ff' font-family='sans-serif'>¥</text></svg>">
 </head>
 <body>
 <header class="top">
@@ -171,6 +233,18 @@
     <button class="close" id="closeBtn">&times;</button>
     <h2 id="sideTitle">全球概览</h2>
     <div id="sideBody"></div>
+
+    <!-- 新闻板块：与 3D 地球视图共用同一套交互（点击节点刷新 / 跨城淡入淡出 / 实时时钟 / 演示数据标注） -->
+    <section class="news-block" id="newsBlock">
+      <div class="news-panel-head">
+        <div class="news-panel-city" id="newsPanelCity">--</div>
+        <div class="news-panel-sub" id="newsPanelSub">金融热点 · 按重要度排序</div>
+        <div class="news-panel-meta" id="newsPanelMeta">--</div>
+      </div>
+      <div class="news-filter" id="newsFilter"></div>
+      <div class="news-panel-list" id="newsPanelList"></div>
+      <div class="news-panel-foot" id="newsPanelFoot">演示数据</div>
+    </section>
   </aside>
 </main>
 
@@ -301,28 +375,167 @@ const FALLBACK_DEBT = {
    { id, cn(中文名), en(英文名), lat(纬度), lng(经度), rank(全球金融中心排名,数字越小越重要), desc(金融地位简述) }
    排名依据 GFCI（全球金融中心指数）近似值，仅作可视化参考；坐标使用标准经纬度。 */
 const CITY_NODES = [
-  { id:'nyc',       cn:'纽约',     en:'New York',      lat:40.71,  lng:-74.00, rank:1,  desc:'全球最大金融中心，华尔街所在地，美股、美债与美元定价核心，全球资本市场枢纽。' },
-  { id:'london',    cn:'伦敦',     en:'London',        lat:51.51,  lng:-0.13,  rank:2,  desc:'欧洲最大金融中心，全球外汇与离岸美元交易枢纽，保险与航运金融重镇。' },
-  { id:'singapore', cn:'新加坡',   en:'Singapore',     lat:1.35,   lng:103.82, rank:3,  desc:'亚洲美元离岸中心，财富管理与家族办公室聚集地，连接东西方资本枢纽。' },
-  { id:'hongkong',  cn:'香港',     en:'Hong Kong',     lat:22.30,  lng:114.17, rank:4,  desc:'亚洲国际金融中心，全球离岸人民币业务枢纽与内地企业境外融资门户。' },
-  { id:'sf',        cn:'旧金山',   en:'San Francisco', lat:37.77,  lng:-122.42,rank:5,  desc:'全球风投与科技金融中心，硅谷核心，IPO 与私募股权活跃。' },
-  { id:'shanghai',  cn:'上海',     en:'Shanghai',      lat:31.23,  lng:121.47, rank:6,  desc:'中国内地金融门户，上交所所在地，人民币国际化与跨境金融前沿。' },
-  { id:'tokyo',     cn:'东京',     en:'Tokyo',         lat:35.69,  lng:139.69, rank:7,  desc:'亚洲重要资本中心，全球最大债券市场与机构投资者聚集地。' },
-  { id:'seoul',     cn:'首尔',     en:'Seoul',         lat:37.57,  lng:126.98, rank:8,  desc:'东北亚金融科技中心，韩国交易所与科创融资活跃。' },
-  { id:'shenzhen',  cn:'深圳',     en:'Shenzhen',      lat:22.54,  lng:114.06, rank:9,  desc:'中国科技创新高地，深交所与创业板所在地，创投生态发达。' },
-  { id:'chicago',   cn:'芝加哥',   en:'Chicago',       lat:41.88,  lng:-87.63, rank:10, desc:'全球衍生品与大宗商品定价中心，CME/CBOT 所在地。' },
-  { id:'frankfurt', cn:'法兰克福', en:'Frankfurt',     lat:50.11,  lng:8.68,   rank:11, desc:'欧元区金融中心，欧洲央行所在地，欧元支付清算枢纽。' },
-  { id:'paris',     cn:'巴黎',     en:'Paris',         lat:48.85,  lng:2.35,   rank:12, desc:'欧元区重要资本市场，泛欧交易所总部，资产管理中心。' },
-  { id:'sydney',    cn:'悉尼',     en:'Sydney',        lat:-33.87, lng:151.21, rank:13, desc:'亚太资金中转站，澳洲金融与大宗商品出口融资中心。' },
-  { id:'dubai',     cn:'迪拜',     en:'Dubai',         lat:25.20,  lng:55.27,  rank:14, desc:'中东金融枢纽，离岸美元与伊斯兰金融中心，连接欧亚非资本。' },
-  { id:'zurich',    cn:'苏黎世',   en:'Zurich',        lat:47.37,  lng:8.54,   rank:15, desc:'全球财富管理与私人银行中心，稳健保密的资产管理重镇。' },
-  { id:'toronto',   cn:'多伦多',   en:'Toronto',       lat:43.65,  lng:-79.38, rank:16, desc:'全球矿业与资源融资枢纽，多伦多证交所主导资源类 IPO。' }
+  { id:'nyc',       name:'纽约', cn:'纽约', en:'New York', lat:40.71, lng:-74.00, rank:1, score:0.98,
+    desc:'全球最大金融中心，华尔街所在地，美股、美债与美元定价核心，全球资本市场枢纽。',
+    news:[
+      { tags:['hot','finance'], title:'标普500指数再创盘中新高，科技七巨头市值突破 18 万亿美元', source:'NYSE', time:'10:08', dimension:'科技产业' },
+      { tags:['update'], title:'美联储褐皮书：多数地区经济活动温和扩张，通胀回落至目标区间', source:'Federal Reserve', time:'09:50', dimension:'货币政策' },
+      { tags:['policy','finance'], title:'SEC 批准现货以太坊 ETF 上市交易，加密资产合规化迈出关键一步', source:'SEC', time:'09:32', dimension:'虚拟货币' },
+      { tags:['finance','hot'], title:'美债收益率曲线结束倒挂，2s10s 重回正值释放软着陆信号', source:'Bloomberg', time:'09:14', dimension:'宏观金融' },
+      { tags:['live'], title:'【直播】华尔街交易台：非农数据前瞻与大类资产配置策略', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' },
+      { tags:['alert'], title:'商业地产风险隐现，多家银行上调写字楼贷款拨备', source:'WSJ', time:'08:28', dimension:'产业趋势' }
+    ]},
+  { id:'london',    name:'伦敦', cn:'伦敦', en:'London', lat:51.51, lng:-0.13, rank:2, score:0.95,
+    desc:'欧洲最大金融中心，全球外汇与离岸美元交易枢纽，保险与航运金融重镇。',
+    news:[
+      { tags:['hot','finance'], title:'富时100指数收涨 0.8%，矿业与金融板块领涨', source:'LSE', time:'10:02', dimension:'能源大宗' },
+      { tags:['policy'], title:'英国央行维持基准利率 4.5% 不变，暗示通胀粘性仍存', source:'Bank of England', time:'09:44', dimension:'货币政策' },
+      { tags:['update'], title:'伦敦外汇日均成交 3.8 万亿美元，稳居全球第一', source:'BIS', time:'09:26', dimension:'宏观金融' },
+      { tags:['alert'], title:'英国财政预算案引发 gilt 市场波动，十年期国债收益率跳升', source:'FT', time:'08:50', dimension:'宏观金融' },
+      { tags:['live'], title:'【连线】脱欧后伦敦金融城竞争力重塑：机遇与挑战', source:'大聪明金融', time:'正在直播', dimension:'政治' }
+    ]},
+  { id:'singapore', name:'新加坡', cn:'新加坡', en:'Singapore', lat:1.35, lng:103.82, rank:3, score:0.85,
+    desc:'亚洲美元离岸中心，财富管理与家族办公室聚集地，连接东西方资本枢纽。',
+    news:[
+      { tags:['hot','finance'], title:'新加坡金管局维持汇率政策区间不变，暗示年内不加息', source:'MAS', time:'10:00', dimension:'货币政策' },
+      { tags:['update'], title:'新加坡港集装箱吞吐量 Q2 同比增 7%，蝉联全球最繁忙转运港', source:'PSA', time:'09:44', dimension:'供应链物流' },
+      { tags:['policy','finance'], title:'中新（重庆）战略性互联互通示范项目二期合作启动', source:'联合早报', time:'08:28', dimension:'自贸区' },
+      { tags:['hot'], title:'全球避险资金涌入新加坡，私人银行 AUM 单季增长 12%', source:'Bloomberg', time:'08:10', dimension:'宏观金融' },
+      { tags:['live'], title:'【连线】东南亚供应链重构下的投资机会分析', source:'大聪明金融', time:'正在直播', dimension:'供应链物流' }
+    ]},
+  { id:'hongkong',  name:'香港', cn:'香港', en:'Hong Kong', lat:22.30, lng:114.17, rank:4, score:0.82,
+    desc:'亚洲国际金融中心，全球离岸人民币业务枢纽与内地企业境外融资门户。',
+    news:[
+      { tags:['hot','finance'], title:'恒生指数收复 19000 点，南向资金单日净买入破百亿港元', source:'HKEX', time:'10:06', dimension:'宏观金融' },
+      { tags:['update'], title:'港交所拟推人民币计价港股交易，双币柜台扩容至 40 只', source:'HKEX', time:'09:48', dimension:'宏观金融' },
+      { tags:['policy'], title:'金管局维持贴现窗基本利率 5.25%，与美联储政策同步', source:'HKMA', time:'09:30', dimension:'货币政策' },
+      { tags:['finance','hot'], title:'香港资产管理规模突破 4 万亿港元，家族办公室数量翻倍', source:'SFC', time:'09:12', dimension:'宏观金融' },
+      { tags:['live'], title:'【直播】港股通机制优化后的北水新动向解读', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' }
+    ]},
+  { id:'sf',        name:'旧金山', cn:'旧金山', en:'San Francisco', lat:37.77, lng:-122.42, rank:5, score:0.80,
+    desc:'全球风投与科技金融中心，硅谷核心，IPO 与私募股权活跃。',
+    news:[
+      { tags:['hot','finance'], title:'纳斯达克综合指数创盘中新高，AI 概念股延续强势', source:'NASDAQ', time:'10:04', dimension:'科技产业' },
+      { tags:['update'], title:'硅谷一季度风险投资额环比回升 22%，AI 基建赛道吸金最多', source:'PitchBook', time:'09:46', dimension:'科技产业' },
+      { tags:['policy'], title:'加州立法推进 AI 安全法案，科技巨头游说寻求折中', source:'SF Chronicle', time:'09:10', dimension:'政治' },
+      { tags:['live'], title:'【连线】生成式 AI 浪潮下的科技股估值重构', source:'大聪明金融', time:'正在直播', dimension:'科技产业' },
+      { tags:['finance','hot'], title:'私募信贷规模突破 1.7 万亿美元，成科技并购重要资金来源', source:'麦肯锡', time:'08:12', dimension:'货币政策' }
+    ]},
+  { id:'shanghai',  name:'上海', cn:'上海', en:'Shanghai', lat:31.23, lng:121.47, rank:6, score:0.81,
+    desc:'中国内地金融门户，上交所所在地，人民币国际化与跨境金融前沿。',
+    news:[
+      { tags:['live','hot'], title:'上证指数早盘突破 3400 点，北向资金单日净买入超 120 亿', source:'Wind', time:'10:05', dimension:'宏观金融' },
+      { tags:['update'], title:'上海自贸区临港新片区跨境贸易便利化措施再升级', source:'第一财经', time:'09:55', dimension:'自贸区' },
+      { tags:['policy'], title:'科创板受理企业数量突破 600 家，硬科技属性强化', source:'上交所', time:'09:38', dimension:'科技产业' },
+      { tags:['hot'], title:'陆股通标的扩容在即，预计新增 50 只 A 股纳入互联互通', source:'证券时报', time:'09:22', dimension:'自贸区' },
+      { tags:['live'], title:'【直播】半导体产业链实地调研：国产替代进度超预期', source:'大聪明金融', time:'正在直播', dimension:'科技产业' }
+    ]},
+  { id:'tokyo',     name:'东京', cn:'东京', en:'Tokyo', lat:35.69, lng:139.69, rank:7, score:0.78,
+    desc:'亚洲重要资本中心，全球最大债券市场与机构投资者聚集地。',
+    news:[
+      { tags:['alert','hot'], title:'日本央行议息会议纪要：多数委员支持渐进加息路径', source:'BOJ', time:'09:56', dimension:'货币政策' },
+      { tags:['finance'], title:'日元兑美元跌破 158 关键位，干预风险升温', source:'路透社', time:'09:38', dimension:'宏观金融' },
+      { tags:['update'], title:'日经 225 指数收涨 1.2%，半导体板块领涨', source:'Nikkei', time:'09:20', dimension:'科技产业' },
+      { tags:['finance','hot'], title:'巴菲特增持五大商社股份至 9% 以上，押注日本价值重估', source:'伯克希尔', time:'08:42', dimension:'宏观金融' },
+      { tags:['live'], title:'【连线】日央行政策转向对全球流动性的外溢影响', source:'大聪明金融', time:'正在直播', dimension:'货币政策' }
+    ]},
+  { id:'seoul',     name:'首尔', cn:'首尔', en:'Seoul', lat:37.57, lng:126.98, rank:8, score:0.74,
+    desc:'东北亚金融科技中心，韩国交易所与科创融资活跃。',
+    news:[
+      { tags:['hot','finance'], title:'韩国综合股价指数 KOSPI 站上 2800 点，外资连续 6 日净买入', source:'KRX', time:'10:01', dimension:'宏观金融' },
+      { tags:['update'], title:'韩国交易所推进夜间交易时段，覆盖欧洲投资者', source:'Yonhap', time:'09:40', dimension:'宏观金融' },
+      { tags:['policy'], title:'金融委员会发布数字资产证券化指引，稳定币纳入监管沙盒', source:'FSC', time:'09:18', dimension:'虚拟货币' },
+      { tags:['industry','hot'], title:'三星电子获创纪录 AI 芯片代工订单，估值中枢上移', source:'韩国经济', time:'08:50', dimension:'科技产业' },
+      { tags:['live'], title:'【连线】东北亚科技产业链景气与汇率联动', source:'大聪明金融', time:'正在直播', dimension:'货币政策' }
+    ]},
+  { id:'shenzhen',  name:'深圳', cn:'深圳', en:'Shenzhen', lat:22.54, lng:114.06, rank:9, score:0.76,
+    desc:'中国科技创新高地，深交所与创业板所在地，创投生态发达。',
+    news:[
+      { tags:['hot','finance'], title:'创业板指涨 1.5%，新能源与半导体板块共振上行', source:'深交所', time:'10:03', dimension:'科技产业' },
+      { tags:['update'], title:'深圳前海跨境金融试点扩容，QFLP 额度审批提速', source:'深圳特区报', time:'09:45', dimension:'自贸区' },
+      { tags:['policy'], title:'创业板注册制改革深化，再融资简易程序扩围', source:'证券时报', time:'09:27', dimension:'宏观金融' },
+      { tags:['live'], title:'【直播】硬科技投资赛道梳理：从 VC 视角看产业拐点', source:'大聪明金融', time:'正在直播', dimension:'科技产业' },
+      { tags:['industry'], title:'华为、比亚迪等龙头带动，深圳工业增加值增速领跑一线', source:'南方日报', time:'08:32', dimension:'产业趋势' }
+    ]},
+  { id:'chicago',   name:'芝加哥', cn:'芝加哥', en:'Chicago', lat:41.88, lng:-87.63, rank:10, score:0.73,
+    desc:'全球衍生品与大宗商品定价中心，CME/CBOT 所在地。',
+    news:[
+      { tags:['hot','finance'], title:'CME 标普500期货未平仓合约创历史新高，机构对冲需求旺盛', source:'CME', time:'10:00', dimension:'宏观金融' },
+      { tags:['update'], title:'芝加哥商品交易所农产品期货成交量同比增 14%', source:'CME', time:'09:42', dimension:'宏观金融' },
+      { tags:['policy'], title:'美国商品期货交易委员会 CFTC 强化高频交易监管规则', source:'CFTC', time:'09:06', dimension:'宏观金融' },
+      { tags:['alert'], title:'玉米大豆产区天气炒作升温，农产品波动率指数跳升', source:'DTN', time:'08:48', dimension:'宏观金融' },
+      { tags:['live'], title:'【连线】大宗商品超级周期与通胀传导路径', source:'大聪明金融', time:'正在直播', dimension:'能源大宗' }
+    ]},
+  { id:'frankfurt', name:'法兰克福', cn:'法兰克福', en:'Frankfurt', lat:50.11, lng:8.68, rank:11, score:0.72,
+    desc:'欧元区金融中心，欧洲央行所在地，欧元支付清算枢纽。',
+    news:[
+      { tags:['hot','finance'], title:'欧洲央行维持三大利率不变，拉加德重申数据依赖路径', source:'ECB', time:'10:01', dimension:'货币政策' },
+      { tags:['update'], title:'欧元兑美元站上 1.09，市场定价年内降息一次', source:'Reuters', time:'09:43', dimension:'货币政策' },
+      { tags:['policy'], title:'德国联邦议院通过 2026 财年预算，国防与基建支出加码', source:'Handelsblatt', time:'09:25', dimension:'地缘军事' },
+      { tags:['alert'], title:'德国商业银行与裕信并购案引发监管审查，欧元区银行业整合生变', source:'FT', time:'08:49', dimension:'宏观金融' },
+      { tags:['live'], title:'【连线】欧元区通胀回落路径与欧债收益率走势', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' }
+    ]},
+  { id:'paris',     name:'巴黎', cn:'巴黎', en:'Paris', lat:48.85, lng:2.35, rank:12, score:0.70,
+    desc:'欧元区重要金融与资本市场中心，泛欧交易所总部，资产管理中心。',
+    news:[
+      { tags:['hot','finance'], title:'CAC40 指数收涨 0.6%，奢侈品与银行板块反弹', source:'Euronext', time:'09:57', dimension:'宏观金融' },
+      { tags:['update'], title:'泛欧交易所 EURONEXT 成交量创季度新高，跨境上市提速', source:'Euronext', time:'09:39', dimension:'自贸区' },
+      { tags:['policy'], title:'法国预算案削减赤字至 GDP 的 5.4%，引发议会拉锯', source:'Les Échos', time:'09:21', dimension:'政治' },
+      { tags:['alert'], title:'法国政治不确定性推升 OAT 收益率，与德债利差走阔', source:'Reuters', time:'08:45', dimension:'宏观金融' },
+      { tags:['live'], title:'【连线】欧洲资本市场联盟进程与跨境资本流动', source:'大聪明金融', time:'正在直播', dimension:'自贸区' }
+    ]},
+  { id:'sydney',    name:'悉尼', cn:'悉尼', en:'Sydney', lat:-33.87, lng:151.21, rank:13, score:0.69,
+    desc:'亚太资金中转站，澳洲金融与大宗商品出口融资中心。',
+    news:[
+      { tags:['resource','hot'], title:'铁矿石价格反弹至 125 USD/t，中国钢厂补库需求拉动', source:'Dalian Commodity', time:'09:50', dimension:'能源大宗' },
+      { tags:['update'], title:'澳洲 LNG 出口合同谈判启动，中日韩买家联合议价', source:'Financial Review', time:'09:14', dimension:'宏观金融' },
+      { tags:['policy'], title:'澳大利亚关键矿产战略更新，稀土加工纳入国家安全审查', source:'ABC', time:'08:54', dimension:'能源大宗' },
+      { tags:['update'], title:'澳联储暂停加息周期，官方利率维持 4.35%', source:'RBA', time:'08:16', dimension:'货币政策' },
+      { tags:['live'], title:'【连线】大宗商品超级周期是否重启？资源国视角的深度解析', source:'大聪明金融', time:'正在直播', dimension:'能源大宗' }
+    ]},
+  { id:'dubai',     name:'迪拜', cn:'迪拜', en:'Dubai', lat:25.20, lng:55.27, rank:14, score:0.66,
+    desc:'中东金融枢纽，离岸美元与伊斯兰金融中心，连接欧亚非资本。',
+    news:[
+      { tags:['energy','hot'], title:'布伦特原油期货突破 88 美元/桶，中东局势溢价约 5 美元', source:'ICE', time:'09:52', dimension:'能源大宗' },
+      { tags:['update'], title:'阿联酋与沙特讨论将部分石油贸易结算转为非美元货币', source:'Arab News', time:'09:34', dimension:'货币政策' },
+      { tags:['finance'], title:'迪拜国际金融中心（DIFC）加密资产监管框架 3.0 发布', source:'DFSA', time:'08:56', dimension:'虚拟货币' },
+      { tags:['alert'], title:'红海航运安全形势恶化，多家船司绕行好望角致运费飙升', source:'Lloyd\'s List', time:'08:14', dimension:'供应链物流' },
+      { tags:['live'], title:'【连线】中东地缘博弈下的能源价格与航运链冲击', source:'大聪明金融', time:'正在直播', dimension:'地缘军事' }
+    ]},
+  { id:'zurich',    name:'苏黎世', cn:'苏黎世', en:'Zurich', lat:47.37, lng:8.54, rank:15, score:0.71,
+    desc:'全球财富管理与私人银行中心，瑞士金融监管稳健，离岸资产托管规模居首。',
+    news:[
+      { tags:['hot','finance'], title:'瑞银集团财富管理 AUM 突破 5.6 万亿美元，整合瑞信渐近尾声', source:'UBS', time:'09:58', dimension:'宏观金融' },
+      { tags:['update'], title:'瑞士法郎避险需求升温，美元兑瑞郎跌至 0.88', source:'SNB', time:'09:40', dimension:'宏观金融' },
+      { tags:['policy'], title:'瑞士央行 SNB 意外降息 25BP 至 1.0%，遏制瑞郎升值', source:'SNB', time:'09:22', dimension:'货币政策' },
+      { tags:['alert'], title:'全球最低税率落地，瑞士各州竞相调整企业税以留住控股总部', source:'NZZ', time:'08:46', dimension:'宏观金融' },
+      { tags:['live'], title:'【连线】全球家族办公室资产配置的新范式', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' }
+    ]},
+  { id:'toronto',   name:'多伦多', cn:'多伦多', en:'Toronto', lat:43.65, lng:-79.38, rank:16, score:0.65,
+    desc:'北美重要金融中心与全球矿业融资枢纽，多伦多证交所 TSX 主导资源类 IPO。',
+    news:[
+      { tags:['hot','finance'], title:'多伦多证交所 TSX 综合指数创历史新高，金融与能源板块领涨', source:'TMX', time:'09:55', dimension:'能源大宗' },
+      { tags:['update'], title:'加拿大央行维持利率 3.0%，暗示通胀回归目标', source:'Bank of Canada', time:'09:37', dimension:'货币政策' },
+      { tags:['finance'], title:'全球矿业融资 60% 经由多伦多市场，黄金铜锂项目密集路演', source:'TMX', time:'09:19', dimension:'能源大宗' },
+      { tags:['alert'], title:'加元兑美元走弱至 1.38，出口导向型企业受益', source:'Reuters', time:'08:43', dimension:'宏观金融' },
+      { tags:['live'], title:'【连线】资源型经济体的周期定位与配置机会', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' }
+    ]}
 ];
 const CITY_BY_ID = {};
 CITY_NODES.forEach(function(c){ CITY_BY_ID[c.id] = c; });
 // 中文名 → 城市对象（ECharts effectScatter 点击时用 name 属性匹配，100% 命中）
 const CITY_BY_NAME = {};
 CITY_NODES.forEach(function(c){ CITY_BY_NAME[c.cn] = c; });
+
+/* 城市时区表（与 3D 地球视图一致，用于新闻面板实时时钟） */
+const CITY_TZ = {
+  nyc:'America/New_York', london:'Europe/London', singapore:'Asia/Singapore', hongkong:'Asia/Hong_Kong',
+  sf:'America/Los_Angeles', shanghai:'Asia/Shanghai', tokyo:'Asia/Tokyo', seoul:'Asia/Seoul',
+  shenzhen:'Asia/Shanghai', chicago:'America/Chicago', frankfurt:'Europe/Berlin', paris:'Europe/Paris',
+  sydney:'Australia/Sydney', dubai:'Asia/Dubai', zurich:'Europe/Zurich', toronto:'America/Toronto'
+};
+/* 金融重要程度评分权重（与 3D 地球视图一致） */
+const TAG_WEIGHT = { alert:5, hot:4, live:3, policy:3, finance:3, trade:2, energy:2, industry:2, resource:2, update:1 };
 
 /* 资金流向连线（按真实金融枢纽逻辑连接，id 对） */
 const FLOW_PAIRS = [
@@ -345,6 +558,184 @@ function fmtB(b){ if(b==null) return "—";
   return neg+b.toFixed(1)+" 十亿美元";
 }
 function fmtT(t){ if(t==null) return "—"; return t.toFixed(2)+" 万亿美元"; }
+
+/* ===== 新闻板块逻辑（与 3D 地球视图完全一致的筛选/排序/过渡/时钟） ===== */
+let newsPanel, newsPanelCity, newsPanelMeta, newsPanelList, newsPanelSub, newsPanelFoot, newsFilter;
+let activeNodeId = null;   // 当前选中的城市 id（供新闻面板实时时钟）
+let activeCityId = null;   // 当前选中的城市 id（供地图节点高亮联动）
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function initNewsPanel(){
+  newsPanel = document.getElementById('newsBlock');
+  newsPanelCity = document.getElementById('newsPanelCity');
+  newsPanelMeta = document.getElementById('newsPanelMeta');
+  newsPanelList = document.getElementById('newsPanelList');
+  newsPanelSub = document.getElementById('newsPanelSub');
+  newsPanelFoot = document.getElementById('newsPanelFoot');
+  newsFilter = document.getElementById('newsFilter');
+  buildNewsFilter();
+}
+
+    /* 构建维度筛选条：全部 + 10 个宏观维度；点击按维度过滤当前城市新闻 */
+    function buildNewsFilter(){
+      if(!newsFilter) return;
+      var chips = [{ key:'all', cn:'全部' }].concat(DIMENSIONS);
+      newsFilter.innerHTML = chips.map(function(c){
+        return '<span class="chip' + (c.key === activeDimension ? ' active' : '') + '" data-dim="' + (c.key === 'all' ? 'all' : c.cn) + '">' + c.cn + '</span>';
+      }).join('');
+      newsFilter.querySelectorAll('.chip').forEach(function(el){
+        el.addEventListener('click', function(){
+          activeDimension = el.dataset.dim;
+          newsFilter.querySelectorAll('.chip').forEach(function(x){ x.classList.remove('active'); });
+          el.classList.add('active');
+          if(currentNewsNode) renderNewsList(currentNewsNode);
+        });
+      });
+    }
+
+    /* 无选中城市时的空状态提示（需求 4） */
+    function showNewsEmpty(){
+  if(!newsPanel) initNewsPanel();
+  activeNodeId = null;
+  newsPanelCity.textContent = '全球金融中心热点';
+  newsPanelSub.textContent = '金融热点 · 按重要度排序';
+  newsPanelMeta.innerHTML = '<span>未选择城市</span>';
+  newsPanelList.innerHTML = '<div class="news-empty">点击地图上的金色圆点<small>查看该全球金融中心的实时金融热点；数据均为演示样本</small></div>';
+  newsPanelFoot.textContent = '演示数据';
+}
+
+function cityTime(tz){
+  try { return new Intl.DateTimeFormat('zh-CN', { timeZone: tz, hour:'2-digit', minute:'2-digit', hour12:false }).format(new Date()); }
+  catch(e){ return '--:--'; }
+}
+function tickClock(){
+  if(!newsPanelMeta) return;
+  var el = newsPanelMeta.querySelector('.city-clock');
+  if(!el || !activeNodeId) return;
+  var c = CITY_BY_ID[activeNodeId];
+  if(!c) return;
+  el.textContent = c.name + '时间 ' + cityTime(CITY_TZ[c.id]);
+}
+function renderNewsListSkeleton(){
+  var html = '';
+  for(var i=0;i<4;i++) html += '<div class="skeleton-item"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>';
+  newsPanelList.innerHTML = html;
+}
+/* 切换城市：旧列表上移淡出 -> 刷新 -> 新列表下移淡入；reduced-motion 直接刷新 */
+function updateNews(node, animate){
+  currentNewsNode = node;
+  renderNewsHeader(node);
+  updateFoot();
+  if(!animate){ renderNewsList(node); return; }
+  var list = newsPanelList;
+  list.classList.add('leaving');
+  if(newsSwitchTimer) clearTimeout(newsSwitchTimer);
+  newsSwitchTimer = setTimeout(function(){
+    renderNewsList(node);
+    list.classList.remove('leaving');
+    list.classList.add('entering');
+    void list.offsetWidth; // 强制回流，确保过渡触发
+    requestAnimationFrame(function(){ list.classList.remove('entering'); });
+  }, 300);
+}
+var newsSwitchTimer = null;
+function newsImportance(item, node){
+  var s = 0;
+  (item.tags || []).forEach(function(t){ s += (TAG_WEIGHT[t] || 1); });
+  if(node && typeof node.score === 'number') s += (node.score - 0.5) * 4; // 全球中心加权
+  return s;
+}
+    /* V3.0 维度体系：10 个宏观维度（中文名 ↔ CSS key），用于新闻双标签与维度筛选 */
+    var DIMENSIONS = [
+      { key:'politics', cn:'政治' }, { key:'geopolitics', cn:'地缘军事' },
+      { key:'monetary', cn:'货币政策' }, { key:'supply-chain', cn:'供应链物流' },
+      { key:'free-trade', cn:'自贸区' }, { key:'tech', cn:'科技产业' },
+      { key:'energy', cn:'能源大宗' }, { key:'industry', cn:'产业趋势' },
+      { key:'crypto', cn:'虚拟货币' }, { key:'macro', cn:'宏观金融' }
+    ];
+    var DIM_KEY = { '政治':'politics','地缘军事':'geopolitics','货币政策':'monetary','供应链物流':'supply-chain','自贸区':'free-trade','科技产业':'tech','能源大宗':'energy','产业趋势':'industry','虚拟货币':'crypto','宏观金融':'macro' };
+    var activeDimension = 'all';   /* 维度筛选：'all' 或某维度中文名 */
+    var currentNewsNode = null;   /* 当前展示新闻的节点（供维度筛选重渲染） */
+
+    function relTime(timeStr){
+  if(!timeStr || timeStr.indexOf('直播') >= 0) return timeStr || '';
+  var m = /^(\d{1,2}):(\d{2})$/.exec(timeStr);
+  if(!m) return timeStr;
+  var itemMin = parseInt(m[1],10)*60 + parseInt(m[2],10);
+  var diff = new Date().getHours()*60 + new Date().getMinutes() - itemMin;
+  if(diff < 0) diff = 0;
+  if(diff < 1) return '刚刚';
+  if(diff < 60) return diff + ' 分钟前';
+  return Math.floor(diff/60) + ' 小时前';
+}
+function renderNewsHeader(node){
+  if(!newsPanel) initNewsPanel();
+  newsPanelCity.textContent = node.name;
+  if(newsPanelSub) newsPanelSub.textContent = '金融热点 · 按重要度排序';
+  var liveCount = node.news.filter(function(n){ return n.tags.indexOf('live') >= 0; }).length;
+  newsPanelMeta.innerHTML =
+    '<span class="city-clock">' + node.name + '时间 ' + cityTime(CITY_TZ[node.id]) + '</span>' +
+    '<span>GFCI 全球金融中心排名 #' + node.rank + '</span>' +
+    (liveCount ? '<span class="news-panel-live"><span class="live-dot"></span>' + liveCount + ' 直播中</span>' : '') +
+    '<span class="demo-pill">演示数据</span>' +
+    '<span class="realtime-pill"><span class="rt-dot"></span>实时</span>';
+}
+function renderNewsList(node){
+  if(!node.news || !node.news.length){ renderNewsListSkeleton(); return; }
+  // 维度筛选：无论选中哪个城市，新闻须同时满足「该城市」与「该维度」双重条件
+  var filtered = (activeDimension === 'all') ? node.news : node.news.filter(function(n){ return (n.dimension || '宏观金融') === activeDimension; });
+  if(!filtered.length){
+    newsPanelList.innerHTML = '<div class="news-empty">该维度下暂无' + node.name + '相关热点<small>切换维度或城市查看其它资讯</small></div>';
+    return;
+  }
+  var ranked = filtered
+    .map(function(it, i){ return { it:it, i:i, imp:newsImportance(it, node) }; })
+    .sort(function(a,b){ return (b.imp - a.imp) || (a.i - b.i); })
+    .map(function(x){ return x.it; });
+  newsPanelList.innerHTML = ranked.map(function(item, idx){
+    var dimCn = item.dimension || '宏观金融';
+    var dk = DIM_KEY[dimCn] || 'macro';
+    var tag = (item.tags && item.tags[0]) || '';
+    var tagLabel = { hot:'热门', live:'直播', policy:'政策', finance:'金融', industry:'产业', energy:'能源', alert:'预警', update:'更新', trade:'贸易', resource:'资源' }[tag] || tag;
+    var rankCls = idx === 0 ? ' top top1' : (idx < 3 ? ' top' : '');
+    return '<div class="news-item' + rankCls + '">' +
+      '<div class="news-tags-row">' +
+        '<span class="dimension-tag ' + dk + '">' + dimCn + '</span>' +
+        (tagLabel ? '<span class="news-tag ' + tag + '">' + tagLabel + '</span>' : '') +
+      '</div>' +
+      '<div class="news-title"><span class="news-rank">#' + (idx+1) + '</span>' + item.title + '</div>' +
+      '<div class="news-meta"><span>' + item.source + '</span>' +
+      '<span class="news-time" data-time="' + item.time + '">' + relTime(item.time) + '</span></div></div>';
+  }).join('');
+}
+function updateFoot(){
+  if(!newsPanelFoot) return;
+  var t = new Date();
+  var p = function(n){ return String(n).padStart(2,'0'); };
+  newsPanelFoot.textContent = '演示数据 · 最后更新 ' + p(t.getHours()) + ':' + p(t.getMinutes()) + ':' + p(t.getSeconds());
+}
+function tickHotspot(){
+  if(!newsPanelList) return;
+  newsPanelList.querySelectorAll('.news-time').forEach(function(el){
+    var t = el.getAttribute('data-time');
+    if(t) el.textContent = relTime(t);
+  });
+  updateFoot();
+}
+setInterval(tickClock, 1000);
+setInterval(tickHotspot, 15000);
+
+/* ===== 地图节点选中高亮联动（对应 3D 的选中光圈脉冲） ===== */
+function cityDataIndex(id){ return CITY_NODES.findIndex(function(c){ return c.id === id; }); }
+function applyCityHighlight(){
+  if(!mapLoaded) return;
+  var idx = cityDataIndex(activeCityId);
+  if(idx < 0) return;
+  chart.dispatchAction({ type:'downplay', seriesIndex:1 });
+  chart.dispatchAction({ type:'highlight', seriesIndex:1, dataIndex:idx });
+}
+function setActiveCity(id){ activeCityId = id; applyCityHighlight(); }
+function clearActiveCity(){ activeCityId = null; if(mapLoaded) chart.dispatchAction({ type:'downplay', seriesIndex:1 }); }
 
 /* ===== 地图初始化 ===== */
 const chart = echarts.init(document.getElementById('map'));
@@ -417,7 +808,8 @@ function renderMap(){
       showEffectOn:'render', rippleEffect:{ brushType:'stroke', scale:3, period:4 },
       itemStyle:{ color:COLORS.gold, borderColor:'#fff', borderWidth:1, shadowBlur:12, shadowColor:'rgba(255,214,102,0.6)' },
       label:{ show:false },
-      emphasis:{ label:{ show:true, formatter:'{b}', color:'#fff', fontSize:12, fontWeight:'bold' } },
+      emphasis:{ label:{ show:true, formatter:'{b}', color:'#fff', fontSize:13, fontWeight:'bold' },
+                 itemStyle:{ color:COLORS.accent, borderColor:'#fff', borderWidth:2, shadowBlur:18, shadowColor:'rgba(79,209,227,0.9)' } },
       zlevel:2
     },
     {
@@ -454,6 +846,7 @@ function renderMap(){
     },
     series:series
   }, true);
+  if(activeCityId) applyCityHighlight();   // 指标切换后保持选中节点高亮
   // 更新图例
   var lg = document.getElementById('legend');
   if(isCont){
@@ -476,30 +869,25 @@ function showOverview(){
     '<div class="stat-row"><span>覆盖国家</span><b>'+cnt+'</b></div>'+
     '<div class="stat-row"><span>全球 FDI 净流入合计</span><b>'+fmtB(totalFDI)+'</b></div>'+
     '<div class="stat-row"><span>全球 GDP 合计</span><b>'+totalGDP.toFixed(1)+' 万亿美元</b></div>'+
-    '<div class="stat-row"><span>金融中心节点</span><b>'+CITY_NODES.length+'</b></div>'+
-    '<div class="rank-title">全球金融中心 TOP 5 <span class="dim">GFCI 排名</span></div>'+
-    CITY_NODES.slice(0,5).map(function(c,i){ return '<div class="rank top'+(i+1)+'" data-id="'+c.id+'"><span class="no">'+(i+1)+'</span><span class="nm">'+c.cn+'<small>'+c.en+'</small></span><span class="val">#'+c.rank+'</span></div>'; }).join('')+
-    '<div class="src">数据来源：World Bank / IMF · GFCI 排名仅供参考</div>';
-  document.querySelectorAll('.rank').forEach(function(el){
-    el.addEventListener('click', function(){ var c=CITY_BY_ID[el.dataset.id]; if(c) selectCity(c); });
-  });
+    '<div class="stat-row"><span>金融中心节点</span><b>'+CITY_NODES.length+'</b></div>';
+  clearActiveCity();   // 取消地图节点选中高亮
+  showNewsEmpty();     // 新闻板块回到空状态（需求 4）
 }
 
 /* ===== 选中城市 ===== */
 function selectCity(c){
+  var firstSel = activeNodeId === null;
   selectedName=c.cn;
   document.getElementById('sideTitle').textContent=c.cn+' · 全球金融中心 #'+c.rank;
   document.getElementById('sideBody').innerHTML=
     '<div class="tag" style="display:inline-block;margin-bottom:10px">GFCI 排名 #'+c.rank+'</div>'+
     '<div class="placeholder">'+c.desc+'</div>'+
     '<div class="stat-row"><span>英文名</span><b>'+c.en+'</b></div>'+
-    '<div class="stat-row"><span>坐标</span><b>'+c.lat.toFixed(2)+'°, '+c.lng.toFixed(2)+'°</b></div>'+
-    '<div class="rank-title">全球金融中心排名 <span class="dim">TOP 10</span></div>'+
-    CITY_NODES.slice(0,10).map(function(n,i){ return '<div class="rank '+(n.id===c.id?'active':'')+' top'+(i+1)+'" data-id="'+n.id+'"><span class="no">'+(i+1)+'</span><span class="nm">'+n.cn+'<small>'+n.en+'</small></span><span class="val">#'+n.rank+'</span></div>'; }).join('')+
-    '<div class="src">GFCI 排名仅供参考</div>';
-  document.querySelectorAll('.rank').forEach(function(el){
-    el.addEventListener('click', function(){ var cc=CITY_BY_ID[el.dataset.id]; if(cc) selectCity(cc); });
-  });
+    '<div class="stat-row"><span>坐标</span><b>'+c.lat.toFixed(2)+'°, '+c.lng.toFixed(2)+'°</b></div>';
+  // 新闻板块联动：选中态 + 跨城过渡（首次选中不播放过渡，与 3D 一致）
+  activeNodeId = c.id;
+  setActiveCity(c.id);
+  updateNews(c, !firstSel && !reducedMotion);
   if(window.innerWidth<=900) openSide();
 }
 
@@ -524,6 +912,7 @@ function loadMap(){
     if(!window.WORLD_GEO_JSON){ throw new Error('no-geo'); }
     echarts.registerMap('world', window.WORLD_GEO_JSON);
     mapLoaded=true; renderMap();
+    initNewsPanel();
     showOverview();
   }catch(e){
     document.getElementById('map').innerHTML='<div class="errbox">地图渲染失败：'+e.message+'</div>';

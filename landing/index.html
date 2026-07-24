@@ -153,7 +153,9 @@
     .globe-fallback {
       position: absolute; inset: 0; display: grid; place-items: center;
       color: var(--text-300); font-size: 13px; text-align: center; padding: 24px;
+      pointer-events: none;            /* 提示层不应拦截地球交互 */
     }
+    .globe-fallback[hidden] { display: none; }  /* 确保 [hidden] 真正隐藏，避免 display:grid 覆盖它 */
 
     /* ===== 右侧：新闻面板 ===== */
     .news-panel {
@@ -190,7 +192,7 @@
       padding: 14px 16px; border-radius: 10px;
       background: rgba(142, 167, 192, 0.06);
       border: 1px solid var(--border-soft);
-      cursor: pointer; transition: all 0.22s ease;
+      cursor: default; transition: all 0.22s ease;
     }
     .news-item:hover {
       background: rgba(0, 212, 255, 0.1);
@@ -220,6 +222,25 @@
     .news-tag.update { background: rgba(54, 224, 160, 0.14); color: var(--ok); }
     .news-tag.trade { background: rgba(54, 224, 160, 0.14); color: var(--ok); }
     .news-tag.resource { background: rgba(255, 170, 50, 0.14); color: var(--warn); }
+
+    /* V3.0 维度标签：10 个宏观维度专属色卡（与重要性标签组成双标签） */
+    .news-tags-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+    .dimension-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; color: #fff; line-height: 1.5; letter-spacing: .3px; }
+    .dimension-tag.politics { background: #EF4444; }
+    .dimension-tag.geopolitics { background: #8B5CF6; } /* 紫色 - 用户确认按 spec 用（项目 P0 原禁紫，此处按需求单放宽） */
+    .dimension-tag.monetary { background: #F97316; }
+    .dimension-tag.supply-chain { background: #14B8A6; }
+    .dimension-tag.free-trade { background: #22C55E; }
+    .dimension-tag.tech { background: #3B82F6; }
+    .dimension-tag.energy { background: #D97706; }
+    .dimension-tag.industry { background: #6366F1; }
+    .dimension-tag.crypto { background: #EAB308; }
+    .dimension-tag.macro { background: #6B7280; }
+    /* 维度筛选条 */
+    .news-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; flex-shrink: 0; }
+    .news-filter .chip { font-size: 11px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border-soft); color: var(--text-400); cursor: pointer; transition: all .16s ease; background: transparent; }
+    .news-filter .chip:hover { border-color: rgba(0, 212, 255, .5); color: #2fd4e6; }
+    .news-filter .chip.active { background: #2fd4e6; color: #04121a; border-color: #2fd4e6; font-weight: 600; }
 
     /* 新闻列表切换动效 */
     .news-panel-list { transition: opacity 0.3s ease, transform 0.3s ease; }
@@ -305,6 +326,7 @@
       .hint { display: none; }
     }
   </style>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23071a2f'/><circle cx='16' cy='16' r='9' fill='none' stroke='%2300d4ff' stroke-width='2'/><text x='16' y='21' font-size='12' text-anchor='middle' fill='%2300d4ff' font-family='sans-serif'>¥</text></svg>">
 </head>
 <body>
 
@@ -334,6 +356,7 @@
         <div class="news-panel-sub" id="newsPanelSub">金融热点 · 按重要度排序</div>
         <div class="news-panel-meta" id="newsPanelMeta">--</div>
       </div>
+      <div class="news-filter" id="newsFilter"></div>
       <div class="news-panel-list" id="newsPanelList"></div>
       <div class="news-panel-foot" id="newsPanelFoot">演示数据</div>
     </aside>
@@ -351,261 +374,261 @@
         rank:15, score:0.72,
         desc:'首都政策中枢，金融监管决策核心区。近期宏观刺激政策密集出台，市场预期升温。',
         news:[
-          { tags:['hot','policy'], title:'央行宣布新一轮降准 50BP，释放长期流动性约 1.2 万亿', source:'中国人民银行', time:'09:42' },
-          { tags:['live','update'], title:'发改委：加快"两重"项目审批节奏，基建投资增速有望回升至 8%', source:'发改委官网', time:'09:35' },
-          { tags:['policy'], title:'北交所深化改革方案落地，中小企业融资渠道进一步拓宽', source:'财新网', time:'09:18' },
-          { tags:['hot'], title:'大模型备案提速，首批 12 家企业通过生成式 AI 服务备案', source:'36氪', time:'09:02' },
-          { tags:['update'], title:'北京自贸区跨境数据流动试点范围扩大至 6 个片区', source:'北京日报', time:'08:47' },
-          { tags:['alert'], title:'京津冀大气污染防治升级，钢铁水泥行业限产力度加码', source:'界面新闻', time:'08:30' },
-          { tags:['policy','update'], title:'国务院常务会议研究促进民营经济发展壮大的具体举措', source:'新华社', time:'08:15' },
-          { tags:['live'], title:'【直播连线】首席宏观分析师解读最新政策组合拳影响路径', source:'大聪明金融', time:'正在直播' },
+          { tags:['hot','policy'], title:'央行宣布新一轮降准 50BP，释放长期流动性约 1.2 万亿', source:'中国人民银行', time:'09:42', dimension:'货币政策' },
+          { tags:['live','update'], title:'发改委：加快"两重"项目审批节奏，基建投资增速有望回升至 8%', source:'发改委官网', time:'09:35', dimension:'产业趋势' },
+          { tags:['policy'], title:'北交所深化改革方案落地，中小企业融资渠道进一步拓宽', source:'财新网', time:'09:18', dimension:'宏观金融' },
+          { tags:['hot'], title:'大模型备案提速，首批 12 家企业通过生成式 AI 服务备案', source:'36氪', time:'09:02', dimension:'科技产业' },
+          { tags:['update'], title:'北京自贸区跨境数据流动试点范围扩大至 6 个片区', source:'北京日报', time:'08:47', dimension:'自贸区' },
+          { tags:['alert'], title:'京津冀大气污染防治升级，钢铁水泥行业限产力度加码', source:'界面新闻', time:'08:30', dimension:'能源大宗' },
+          { tags:['policy','update'], title:'国务院常务会议研究促进民营经济发展壮大的具体举措', source:'新华社', time:'08:15', dimension:'政治' },
+          { tags:['live'], title:'【直播连线】首席宏观分析师解读最新政策组合拳影响路径', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' },
         ]},
       { id:'shanghai',  name:'上海',    region:'华东',  lat:31.2, lng:121.5, type:'finance',  color:'#3b82f6',
         rank:8, score:0.81,
         desc:'国际金融中心与航运枢纽，科创板主阵地。外资流入持续，离岸人民币业务活跃。',
         news:[
-          { tags:['live','hot'], title:'上证指数早盘突破 3400 点，北向资金单日净买入超 120 亿', source:'Wind 资讯', time:'10:05' },
-          { tags:['update'], title:'上海自贸区临港新片区跨境贸易便利化措施再升级，通关时效压缩 30%', source:'第一财经', time:'09:55' },
-          { tags:['policy'], title:'科创板受理企业数量突破 600 家，硬科技属性进一步强化', source:'上交所', time:'09:38' },
-          { tags:['hot'], title:'陆股通标的扩容在即，预计新增 50 只 A 股纳入互联互通', source:'证券时报', time:'09:22' },
-          { tags:['update'], title:'洋山港集装箱吞吐量创历史新高，全球供应链枢纽地位稳固', source:'港口协会', time:'09:10' },
-          { tags:['live'], title:'【直播】半导体产业链实地调研：国产替代进度超预期', source:'大聪明金融', time:'正在直播' },
-          { tags:['policy'], title:'上海发布人工智能产业扶持政策，算力补贴最高达 2000 万元', source:'上海市经信委', time:'08:45' },
-          { tags:['hot','alert'], title:'离岸人民币汇率波动加大，央行出手稳定市场预期', source:'外汇交易中心', time:'08:20' },
+          { tags:['live','hot'], title:'上证指数早盘突破 3400 点，北向资金单日净买入超 120 亿', source:'Wind 资讯', time:'10:05', dimension:'宏观金融' },
+          { tags:['update'], title:'上海自贸区临港新片区跨境贸易便利化措施再升级，通关时效压缩 30%', source:'第一财经', time:'09:55', dimension:'供应链物流' },
+          { tags:['policy'], title:'科创板受理企业数量突破 600 家，硬科技属性进一步强化', source:'上交所', time:'09:38', dimension:'科技产业' },
+          { tags:['hot'], title:'陆股通标的扩容在即，预计新增 50 只 A 股纳入互联互通', source:'证券时报', time:'09:22', dimension:'自贸区' },
+          { tags:['update'], title:'洋山港集装箱吞吐量创历史新高，全球供应链枢纽地位稳固', source:'港口协会', time:'09:10', dimension:'供应链物流' },
+          { tags:['live'], title:'【直播】半导体产业链实地调研：国产替代进度超预期', source:'大聪明金融', time:'正在直播', dimension:'科技产业' },
+          { tags:['policy'], title:'上海发布人工智能产业扶持政策，算力补贴最高达 2000 万元', source:'上海市经信委', time:'08:45', dimension:'科技产业' },
+          { tags:['hot','alert'], title:'离岸人民币汇率波动加大，央行出手稳定市场预期', source:'外汇交易中心', time:'08:20', dimension:'货币政策' },
         ]},
       { id:'guangzhou', name:'广州', region:'华南',  lat:23.1, lng:113.3, type:'trade',   color:'#36e0a0',
         rank:33, score:0.65,
         desc:'粤港澳大湾区核心引擎，广交会永久举办地。跨境电商与数字贸易增长强劲。',
         news:[
-          { tags:['hot','trade'], title:'广交会第 137 届开幕，首日到会采购商同比增长 18%', source:'央视财经', time:'09:50' },
-          { tags:['update'], title:'大湾区跨境理财通 2.0 上线，可投资产品池扩容 3 倍', source:'南方日报', time:'09:33' },
-          { tags:['policy'], title:'前海深港现代服务业合作区新政：支持港资金融机构独资设立', source:'深圳特区报', time:'09:15' },
-          { tags:['trade'], title:'广州港南沙港区四期自动化码头正式投运，年处理能力提升 200 万 TEU', source:'广州日报', time:'08:58' },
-          { tags:['update'], title:'跨境电商综试区出口额同比增 32%，东南亚成最大增量市场', source:'海关总署', time:'08:40' },
-          { tags:['hot'], title:'横琴粤澳深度合作区"双 15%"税收优惠政策延长至 2029 年', source:'澳门日报', time:'08:25' },
-          { tags:['policy','trade'], title:'CEPA 升级协议签署，服务贸易负面清单缩减至 27 项', source:'商务部', time:'08:08' },
-          { tags:['live'], title:'【连线】粤港澳三地专家共话湾区一体化发展新机遇', source:'大聪明金融', time:'正在直播' },
+          { tags:['hot','trade'], title:'广交会第 137 届开幕，首日到会采购商同比增长 18%', source:'央视财经', time:'09:50', dimension:'宏观金融' },
+          { tags:['update'], title:'大湾区跨境理财通 2.0 上线，可投资产品池扩容 3 倍', source:'南方日报', time:'09:33', dimension:'自贸区' },
+          { tags:['policy'], title:'前海深港现代服务业合作区新政：支持港资金融机构独资设立', source:'深圳特区报', time:'09:15', dimension:'自贸区' },
+          { tags:['trade'], title:'广州港南沙港区四期自动化码头正式投运，年处理能力提升 200 万 TEU', source:'广州日报', time:'08:58', dimension:'宏观金融' },
+          { tags:['update'], title:'跨境电商综试区出口额同比增 32%，东南亚成最大增量市场', source:'海关总署', time:'08:40', dimension:'自贸区' },
+          { tags:['hot'], title:'横琴粤澳深度合作区"双 15%"税收优惠政策延长至 2029 年', source:'澳门日报', time:'08:25', dimension:'宏观金融' },
+          { tags:['policy','trade'], title:'CEPA 升级协议签署，服务贸易负面清单缩减至 27 项', source:'商务部', time:'08:08', dimension:'宏观金融' },
+          { tags:['live'], title:'【连线】粤港澳三地专家共话湾区一体化发展新机遇', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' },
         ]},
       { id:'chengdu',   name:'成都',   region:'西南',  lat:30.6, lng:104.1, type:'industry', color:'#b4a0ff',
         rank:45, score:0.58,
         desc:'西部经济中心与电子信息产业基地。"东数西算"核心节点，清洁能源优势突出。',
         news:[
-          { tags:['industry','hot'], title:'成都高新区获批国家自主创新示范区，集成电路专项基金规模达 100 亿', source:'四川日报', time:'09:45' },
-          { tags:['update'], title:'天府数据中心集群建设加速，总算力突破 100 EFLOPS', source:'成都发布', time:'09:28' },
-          { tags:['industry'], title:'比亚迪成都基地三期投产，新能源汽车产能提升至 60 万辆/年', source:'21世纪经济报道', time:'09:12' },
-          { tags:['policy'], title:'成渝地区双城经济圈规划纲要中期评估报告发布', source:'国家发改委', time:'08:55' },
-          { tags:['industry','update'], title:'川渝共建西部科学城，首批 15 个重大科技项目签约落地', source:'科技日报', time:'08:35' },
-          { tags:['hot'], title:'光伏产业链向西迁移加速，四川多晶硅产能占全国 25%', source:'能源杂志', time:'08:20' },
-          { tags:['update'], title:'中欧班列（成都）累计开行突破 25000 列，回程比例达 54%', source:'成都海关', time:'08:05' },
-          { tags:['live'], title:'【调研连线】西部产业转移中的投资机会梳理', source:'大聪明金融', time:'正在直播' },
+          { tags:['industry','hot'], title:'成都高新区获批国家自主创新示范区，集成电路专项基金规模达 100 亿', source:'四川日报', time:'09:45', dimension:'宏观金融' },
+          { tags:['update'], title:'天府数据中心集群建设加速，总算力突破 100 EFLOPS', source:'成都发布', time:'09:28', dimension:'科技产业' },
+          { tags:['industry'], title:'比亚迪成都基地三期投产，新能源汽车产能提升至 60 万辆/年', source:'21世纪经济报道', time:'09:12', dimension:'能源大宗' },
+          { tags:['policy'], title:'成渝地区双城经济圈规划纲要中期评估报告发布', source:'国家发改委', time:'08:55', dimension:'宏观金融' },
+          { tags:['industry','update'], title:'川渝共建西部科学城，首批 15 个重大科技项目签约落地', source:'科技日报', time:'08:35', dimension:'科技产业' },
+          { tags:['hot'], title:'光伏产业链向西迁移加速，四川多晶硅产能占全国 25%', source:'能源杂志', time:'08:20', dimension:'科技产业' },
+          { tags:['update'], title:'中欧班列（成都）累计开行突破 25000 列，回程比例达 54%', source:'成都海关', time:'08:05', dimension:'宏观金融' },
+          { tags:['live'], title:'【调研连线】西部产业转移中的投资机会梳理', source:'大聪明金融', time:'正在直播', dimension:'产业趋势' },
         ]},
       { id:'xian',      name:'西安',   region:'西北',  lat:34.3, lng:108.9, type:'industry', color:'#b4a0ff',
         rank:50, score:0.53,
         desc:'丝路起点与航天军工重镇。航空航天、新材料产业集群效应显著。',
         news:[
-          { tags:['industry'], title:'西安航天基地商业航天发射场一期工程竣工，年内具备发射能力', source:'陕西卫视', time:'09:40' },
-          { tags:['hot'], title:'西咸新区氢能产业园引入 5 家龙头企业，全产业链布局初具雏形', source:'华商报', time:'09:20' },
-          { tags:['update'], title:'中欧班列（西安）去程满载率连续 6 个月保持 98% 以上', source:'西安晚报', time:'09:00' },
-          { tags:['policy'], title:'陕西省"十四五"制造业高质量发展规划中期调整方案公示', source:'省工信厅', time:'08:42' },
-          { tags:['industry'], title:'隆基绿能 TOPCon 电池转换效率刷新世界纪录至 26.81%', source:'公司公告', time:'08:22' },
-          { tags:['hot'], title:'三星西安存储芯片二期扩产完成，月产能增至 25 万片晶圆', source:'半导体行业观察', time:'08:05' },
-          { tags:['update'], title:'丝绸之路国际博览会签约金额突破 3000 亿元，创历届新高', source:'新华网', time:'07:50' },
-          { tags:['live'], title:'【连线】军工产业链景气度跟踪与投资逻辑', source:'大聪明金融', time:'正在直播' },
+          { tags:['industry'], title:'西安航天基地商业航天发射场一期工程竣工，年内具备发射能力', source:'陕西卫视', time:'09:40', dimension:'宏观金融' },
+          { tags:['hot'], title:'西咸新区氢能产业园引入 5 家龙头企业，全产业链布局初具雏形', source:'华商报', time:'09:20', dimension:'产业趋势' },
+          { tags:['update'], title:'中欧班列（西安）去程满载率连续 6 个月保持 98% 以上', source:'西安晚报', time:'09:00', dimension:'宏观金融' },
+          { tags:['policy'], title:'陕西省"十四五"制造业高质量发展规划中期调整方案公示', source:'省工信厅', time:'08:42', dimension:'产业趋势' },
+          { tags:['industry'], title:'隆基绿能 TOPCon 电池转换效率刷新世界纪录至 26.81%', source:'公司公告', time:'08:22', dimension:'科技产业' },
+          { tags:['hot'], title:'三星西安存储芯片二期扩产完成，月产能增至 25 万片晶圆', source:'半导体行业观察', time:'08:05', dimension:'科技产业' },
+          { tags:['update'], title:'丝绸之路国际博览会签约金额突破 3000 亿元，创历届新高', source:'新华网', time:'07:50', dimension:'宏观金融' },
+          { tags:['live'], title:'【连线】军工产业链景气度跟踪与投资逻辑', source:'大聪明金融', time:'正在直播', dimension:'产业趋势' },
         ]},
       { id:'singapore', name:'新加坡', region:'东南亚',lat:1.35, lng:103.8, type:'finance', color:'#3b82f6',
         rank:3, score:0.77,
         desc:'亚太金融中心与全球最大转口港之一。东盟门户，RCEP 关键节点。',
         news:[
-          { tags:['hot','finance'], title:'新加坡金管局维持汇率政策区间不变，暗示年内不加息', source:'MAS 公告', time:'10:00' },
-          { tags:['update'], title:'新加坡港集装箱吞吐量 Q2 同比增 7%，蝉联全球最繁忙转运港', source:'PSA 国际', time:'09:44' },
-          { tags:['policy'], title:'RCEP 对印尼全面生效，区域内 90% 以上货物实现零关税', source:'商务部', time:'09:26' },
-          { tags:['finance','hot'], title:'星展银行上调亚洲新兴市场 GDP 增速预测至 5.1%', source:'DBS 研报', time:'09:08' },
-          { tags:['update'], title:'淡马锡 2026 财年投资组合净值创新高，科技板块配置占比升至 28%', source:'淡马锡年报', time:'08:48' },
-          { tags:['live'], title:'【连线】东南亚供应链重构下的投资机会分析', source:'大聪明金融', time:'正在直播' },
-          { tags:['policy','finance'], title:'中新（重庆）战略性互联互通示范项目二期合作启动', source:'联合早报', time:'08:28' },
-          { tags:['hot'], title:'全球避险资金涌入新加坡，私人银行 AUM 单季增长 12%', source:'Bloomberg', time:'08:10' },
+          { tags:['hot','finance'], title:'新加坡金管局维持汇率政策区间不变，暗示年内不加息', source:'MAS 公告', time:'10:00', dimension:'货币政策' },
+          { tags:['update'], title:'新加坡港集装箱吞吐量 Q2 同比增 7%，蝉联全球最繁忙转运港', source:'PSA 国际', time:'09:44', dimension:'供应链物流' },
+          { tags:['policy'], title:'RCEP 对印尼全面生效，区域内 90% 以上货物实现零关税', source:'商务部', time:'09:26', dimension:'宏观金融' },
+          { tags:['finance','hot'], title:'星展银行上调亚洲新兴市场 GDP 增速预测至 5.1%', source:'DBS 研报', time:'09:08', dimension:'宏观金融' },
+          { tags:['update'], title:'淡马锡 2026 财年投资组合净值创新高，科技板块配置占比升至 28%', source:'淡马锡年报', time:'08:48', dimension:'科技产业' },
+          { tags:['live'], title:'【连线】东南亚供应链重构下的投资机会分析', source:'大聪明金融', time:'正在直播', dimension:'供应链物流' },
+          { tags:['policy','finance'], title:'中新（重庆）战略性互联互通示范项目二期合作启动', source:'联合早报', time:'08:28', dimension:'自贸区' },
+          { tags:['hot'], title:'全球避险资金涌入新加坡，私人银行 AUM 单季增长 12%', source:'Bloomberg', time:'08:10', dimension:'宏观金融' },
         ]},
       { id:'tokyo',     name:'东京',    region:'东亚',  lat:35.7, lng:139.7, type:'finance', color:'#3b82f6',
         rank:11, score:0.69,
         desc:'全球第三大经济体与最大债权国。日央行货币政策转向是当前焦点变量。',
         news:[
-          { tags:['alert','hot'], title:'日本央行议息会议纪要：多数委员支持渐进加息路径', source:'BOJ', time:'09:56' },
-          { tags:['finance'], title:'日元兑美元跌破 158 关键位，干预风险升温', source:'路透社', time:'09:38' },
-          { tags:['update'], title:'日经 225 指数收涨 1.2%，半导体板块领涨', source:'Nikkei', time:'09:20' },
-          { tags:['policy'], title:'岸田政府推出新一轮经济刺激计划，规模达 25 万亿日元', source:'读卖新闻', time:'09:02' },
-          { tags:['finance','hot'], title:'巴菲特增持五大商社股份至 9% 以上，押注日本价值重估', source:'伯克希尔文件', time:'08:42' },
-          { tags:['update'], title:'东京证券交易所改革 T+1 结算制度于本月正式生效', source:'JPX', time:'08:22' },
-          { tags:['alert'], title:'日本核污水排海引发周边国家外交抗议，地缘紧张度上升', source:'NHK', time:'08:00' },
-          { tags:['live'], title:'【连线】日央行政策转向对全球流动性的外溢影响', source:'大聪明金融', time:'正在直播' },
+          { tags:['alert','hot'], title:'日本央行议息会议纪要：多数委员支持渐进加息路径', source:'BOJ', time:'09:56', dimension:'货币政策' },
+          { tags:['finance'], title:'日元兑美元跌破 158 关键位，干预风险升温', source:'路透社', time:'09:38', dimension:'宏观金融' },
+          { tags:['update'], title:'日经 225 指数收涨 1.2%，半导体板块领涨', source:'Nikkei', time:'09:20', dimension:'科技产业' },
+          { tags:['policy'], title:'岸田政府推出新一轮经济刺激计划，规模达 25 万亿日元', source:'读卖新闻', time:'09:02', dimension:'政治' },
+          { tags:['finance','hot'], title:'巴菲特增持五大商社股份至 9% 以上，押注日本价值重估', source:'伯克希尔文件', time:'08:42', dimension:'宏观金融' },
+          { tags:['update'], title:'东京证券交易所改革 T+1 结算制度于本月正式生效', source:'JPX', time:'08:22', dimension:'宏观金融' },
+          { tags:['alert'], title:'日本核污水排海引发周边国家外交抗议，地缘紧张度上升', source:'NHK', time:'08:00', dimension:'地缘军事' },
+          { tags:['live'], title:'【连线】日央行政策转向对全球流动性的外溢影响', source:'大聪明金融', time:'正在直播', dimension:'货币政策' },
         ]},
       { id:'mumbai',    name:'孟买',    region:'南亚',  lat:19.1, lng:72.9, type:'industry', color:'#b4a0ff',
         rank:31, score:0.49,
         desc:'印度金融之都与 IT 外包中心。"印度制造"推进中，但基础设施仍是瓶颈。',
         news:[
-          { tags:['hot','industry'], title:'印度 IT 服务巨头 Q2 订单增速放缓至 5%，AI 替代担忧升温', source:'Economic Times', time:'09:48' },
-          { tags:['policy'], title:'莫迪政府"生产挂钩激励计划"扩展至电子元件领域', source:'Business Standard', time:'09:30' },
-          { tags:['update'], title:'孟买 Sensex 指数盘中首次突破 85000 点关口', source:'BSE', time:'09:12' },
-          { tags:['industry'], title:'塔塔集团宣布在古吉拉特邦建设印度最大半导体制造基地', source:'Times of India', time:'08:54' },
-          { tags:['hot'], title:'印度黄金进口量创 10 年新高，居民避险需求旺盛', source:'WGC 印度', time:'08:35' },
-          { tags:['alert'], title:'印巴边境冲突升级，双方在克什米尔地区发生小规模交火', source:'Reuters', time:'08:15' },
-          { tags:['update'], title:'卢比兑美元创历史新低，印度央行入市干预汇市', source:'RBI', time:'07:55' },
-          { tags:['live'], title:'【连线】南亚地缘格局变化与区域投资风险评估', source:'大聪明金融', time:'正在直播' },
+          { tags:['hot','industry'], title:'印度 IT 服务巨头 Q2 订单增速放缓至 5%，AI 替代担忧升温', source:'Economic Times', time:'09:48', dimension:'科技产业' },
+          { tags:['policy'], title:'莫迪政府"生产挂钩激励计划"扩展至电子元件领域', source:'Business Standard', time:'09:30', dimension:'政治' },
+          { tags:['update'], title:'孟买 Sensex 指数盘中首次突破 85000 点关口', source:'BSE', time:'09:12', dimension:'宏观金融' },
+          { tags:['industry'], title:'塔塔集团宣布在古吉拉特邦建设印度最大半导体制造基地', source:'Times of India', time:'08:54', dimension:'科技产业' },
+          { tags:['hot'], title:'印度黄金进口量创 10 年新高，居民避险需求旺盛', source:'WGC 印度', time:'08:35', dimension:'能源大宗' },
+          { tags:['alert'], title:'印巴边境冲突升级，双方在克什米尔地区发生小规模交火', source:'Reuters', time:'08:15', dimension:'地缘军事' },
+          { tags:['update'], title:'卢比兑美元创历史新低，印度央行入市干预汇市', source:'RBI', time:'07:55', dimension:'货币政策' },
+          { tags:['live'], title:'【连线】南亚地缘格局变化与区域投资风险评估', source:'大聪明金融', time:'正在直播', dimension:'地缘军事' },
         ]},
       { id:'dubai',     name:'迪拜',    region:'中东',  lat:25.2, lng:55.3, type:'energy',  color:'#ffaa32',
         rank:16, score:0.61,
         desc:'中东能源贸易枢纽与金融中心。石油定价基准 + 数字资产试验田。',
         news:[
-          { tags:['energy','hot'], title:'布伦特原油期货突破 88 美元/桶，中东局势溢价约 5 美元', source:'ICE', time:'09:52' },
-          { tags:['update'], title:'阿联酋与沙特讨论将部分石油贸易结算转为非美元货币', source:'Arab News', time:'09:34' },
-          { tags:['energy'], title:'OPEC+ 月度会议决定延长减产协议至 Q4，减产幅度维持不变', source:'OPEC 秘书处', time:'09:16' },
-          { tags:['finance'], title:'迪拜国际金融中心（DIFC）加密资产监管框架 3.0 发布', source:'DFSA', time:'08:56' },
-          { tags:['energy','hot'], title:'沙特阿美 Q2 净利润同比下降 15%，但仍高于分析师预期', source:'Aramco 公告', time:'08:36' },
-          { tags:['alert'], title:'红海航运安全形势恶化，多家船司绕行好望角致运费飙升 200%', source:'Lloyd\'s List', time:'08:14' },
-          { tags:['update'], title:'卡塔尔 LNG 扩产计划提前完成，2027 年产能将翻倍', source:'QatarEnergy', time:'07:52' },
-          { tags:['live'], title:'【连线】中东地缘博弈下的能源价格与航运链冲击', source:'大聪明金融', time:'正在直播' },
+          { tags:['energy','hot'], title:'布伦特原油期货突破 88 美元/桶，中东局势溢价约 5 美元', source:'ICE', time:'09:52', dimension:'能源大宗' },
+          { tags:['update'], title:'阿联酋与沙特讨论将部分石油贸易结算转为非美元货币', source:'Arab News', time:'09:34', dimension:'货币政策' },
+          { tags:['energy'], title:'OPEC+ 月度会议决定延长减产协议至 Q4，减产幅度维持不变', source:'OPEC 秘书处', time:'09:16', dimension:'宏观金融' },
+          { tags:['finance'], title:'迪拜国际金融中心（DIFC）加密资产监管框架 3.0 发布', source:'DFSA', time:'08:56', dimension:'虚拟货币' },
+          { tags:['energy','hot'], title:'沙特阿美 Q2 净利润同比下降 15%，但仍高于分析师预期', source:'Aramco 公告', time:'08:36', dimension:'宏观金融' },
+          { tags:['alert'], title:'红海航运安全形势恶化，多家船司绕行好望角致运费飙升 200%', source:'Lloyd\'s List', time:'08:14', dimension:'供应链物流' },
+          { tags:['update'], title:'卡塔尔 LNG 扩产计划提前完成，2027 年产能将翻倍', source:'QatarEnergy', time:'07:52', dimension:'产业趋势' },
+          { tags:['live'], title:'【连线】中东地缘博弈下的能源价格与航运链冲击', source:'大聪明金融', time:'正在直播', dimension:'地缘军事' },
         ]},
       { id:'sydney',    name:'悉尼',    region:'澳洲',  lat:-33.9, lng:151.2, type:'resource',color:'#ffaa32',
         rank:17, score:0.67,
         desc:'大洋洲资源出口枢纽。铁矿石、锂矿、天然气全球定价影响力强。',
         news:[
-          { tags:['resource','hot'], title:'铁矿石价格反弹至 125 USD/t，中国钢厂补库需求拉动', source:'Dalian Commodity', time:'09:50' },
-          { tags:['update'], title:'澳大利亚锂精矿 FOB 价格企稳，碳酸锂期货同步止跌', source:'SMM', time:'09:32' },
-          { tags:['resource'], title:'澳洲 LNG 出口合同谈判启动，中日韩买家联合议价', source:'Financial Review', time:'09:14' },
-          { tags:['policy'], title:'澳大利亚关键矿产战略更新，稀土加工纳入国家安全审查', source:'ABC News', time:'08:54' },
-          { tags:['resource','hot'], title:'必和必拓下调 2026 财年铜产量指引，智利矿山罢工影响延续', source:'BHP 公告', time:'08:34' },
-          { tags:['update'], title:'澳联储暂停加息周期，官方利率维持在 4.35%', source:'RBA', time:'08:16' },
-          { tags:['alert'], title:'中澳关系回暖信号：商务部长访华推动龙虾等农产品复关', source:'The Australian', time:'07:58' },
-          { tags:['live'], title:'【连线】大宗商品超级周期是否重启？资源国视角的深度解析', source:'大聪明金融', time:'正在直播' },
+          { tags:['resource','hot'], title:'铁矿石价格反弹至 125 USD/t，中国钢厂补库需求拉动', source:'Dalian Commodity', time:'09:50', dimension:'能源大宗' },
+          { tags:['update'], title:'澳大利亚锂精矿 FOB 价格企稳，碳酸锂期货同步止跌', source:'SMM', time:'09:32', dimension:'能源大宗' },
+          { tags:['resource'], title:'澳洲 LNG 出口合同谈判启动，中日韩买家联合议价', source:'Financial Review', time:'09:14', dimension:'宏观金融' },
+          { tags:['policy'], title:'澳大利亚关键矿产战略更新，稀土加工纳入国家安全审查', source:'ABC News', time:'08:54', dimension:'能源大宗' },
+          { tags:['resource','hot'], title:'必和必拓下调 2026 财年铜产量指引，智利矿山罢工影响延续', source:'BHP 公告', time:'08:34', dimension:'能源大宗' },
+          { tags:['update'], title:'澳联储暂停加息周期，官方利率维持在 4.35%', source:'RBA', time:'08:16', dimension:'货币政策' },
+          { tags:['alert'], title:'中澳关系回暖信号：商务部长访华推动龙虾等农产品复关', source:'The Australian', time:'07:58', dimension:'政治' },
+          { tags:['live'], title:'【连线】大宗商品超级周期是否重启？资源国视角的深度解析', source:'大聪明金融', time:'正在直播', dimension:'能源大宗' },
         ]},
       { id:'newyork', name:'纽约', region:'北美', lat:40.71, lng:-74.01, type:'finance', color:'#3b82f6', rank:1,
         score:0.98,
         desc:'全球最大金融中心，华尔街所在地。美股、美债、美元定价核心，全球资本流动的终极枢纽。',
         news:[
-          { tags:['hot','finance'], title:'标普500指数再创历史新高，科技七巨头市值突破 18 万亿美元', source:'NYSE', time:'10:08' },
-          { tags:['update'], title:'美联储褐皮书：多数地区经济活动温和扩张，通胀回落至目标区间', source:'Federal Reserve', time:'09:50' },
-          { tags:['policy','finance'], title:'SEC 批准现货以太坊 ETF 上市交易，加密资产合规化迈出关键一步', source:'SEC', time:'09:32' },
-          { tags:['finance','hot'], title:'美债收益率曲线结束倒挂，2s10s 重回正值释放经济软着陆信号', source:'Bloomberg', time:'09:14' },
-          { tags:['live'], title:'【直播】华尔街交易台：非农数据前瞻与大类资产配置策略', source:'大聪明金融', time:'正在直播' },
-          { tags:['update'], title:'纽约证交所日均成交额突破 600 亿美元，衍生品活跃度创年内新高', source:'NYSE', time:'08:46' },
-          { tags:['alert'], title:'商业地产风险隐现，华尔街多家银行上调写字楼贷款拨备', source:'WSJ', time:'08:28' },
-          { tags:['finance'], title:'美元指数徘徊 104 关口，市场押注年内降息两次', source:'Reuters', time:'08:10' },
+          { tags:['hot','finance'], title:'标普500指数再创历史新高，科技七巨头市值突破 18 万亿美元', source:'NYSE', time:'10:08', dimension:'科技产业' },
+          { tags:['update'], title:'美联储褐皮书：多数地区经济活动温和扩张，通胀回落至目标区间', source:'Federal Reserve', time:'09:50', dimension:'货币政策' },
+          { tags:['policy','finance'], title:'SEC 批准现货以太坊 ETF 上市交易，加密资产合规化迈出关键一步', source:'SEC', time:'09:32', dimension:'虚拟货币' },
+          { tags:['finance','hot'], title:'美债收益率曲线结束倒挂，2s10s 重回正值释放经济软着陆信号', source:'Bloomberg', time:'09:14', dimension:'宏观金融' },
+          { tags:['live'], title:'【直播】华尔街交易台：非农数据前瞻与大类资产配置策略', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' },
+          { tags:['update'], title:'纽约证交所日均成交额突破 600 亿美元，衍生品活跃度创年内新高', source:'NYSE', time:'08:46', dimension:'宏观金融' },
+          { tags:['alert'], title:'商业地产风险隐现，华尔街多家银行上调写字楼贷款拨备', source:'WSJ', time:'08:28', dimension:'产业趋势' },
+          { tags:['finance'], title:'美元指数徘徊 104 关口，市场押注年内降息两次', source:'Reuters', time:'08:10', dimension:'货币政策' },
         ]},
       { id:'london', name:'伦敦', region:'欧洲', lat:51.51, lng:-0.13, type:'finance', color:'#3b82f6', rank:2,
         score:0.95,
         desc:'欧洲最大金融中心与全球外汇交易枢纽。伦交所、劳合社、国际金融服务业高度集聚。',
         news:[
-          { tags:['hot','finance'], title:'富时100指数收涨 0.8%，矿业与金融板块领涨', source:'LSE', time:'10:02' },
-          { tags:['policy'], title:'英国央行维持基准利率 4.5% 不变，暗示通胀粘性仍存', source:'Bank of England', time:'09:44' },
-          { tags:['update'], title:'伦敦外汇日均成交量为 3.8 万亿美元，稳居全球第一', source:'BIS', time:'09:26' },
-          { tags:['finance'], title:'伦交所集团宣布拆分意大利交易所业务，聚焦核心资本市场', source:'LSEG', time:'09:08' },
-          { tags:['alert'], title:'英国财政预算案引发 gilt 市场波动，十年期国债收益率跳升', source:'FT', time:'08:50' },
-          { tags:['live'], title:'【连线】脱欧后伦敦金融城竞争力重塑：机遇与挑战', source:'大聪明金融', time:'正在直播' },
-          { tags:['update'], title:'英国 FCA 发布加密资产监管最终规则，稳定币纳入支付框架', source:'FCA', time:'08:30' },
-          { tags:['finance','hot'], title:'伦敦成为全球绿色债券最大发行地，年内募资超 800 亿英镑', source:'气候债券倡议', time:'08:12' },
+          { tags:['hot','finance'], title:'富时100指数收涨 0.8%，矿业与金融板块领涨', source:'LSE', time:'10:02', dimension:'能源大宗' },
+          { tags:['policy'], title:'英国央行维持基准利率 4.5% 不变，暗示通胀粘性仍存', source:'Bank of England', time:'09:44', dimension:'货币政策' },
+          { tags:['update'], title:'伦敦外汇日均成交量为 3.8 万亿美元，稳居全球第一', source:'BIS', time:'09:26', dimension:'宏观金融' },
+          { tags:['finance'], title:'伦交所集团宣布拆分意大利交易所业务，聚焦核心资本市场', source:'LSEG', time:'09:08', dimension:'宏观金融' },
+          { tags:['alert'], title:'英国财政预算案引发 gilt 市场波动，十年期国债收益率跳升', source:'FT', time:'08:50', dimension:'宏观金融' },
+          { tags:['live'], title:'【连线】脱欧后伦敦金融城竞争力重塑：机遇与挑战', source:'大聪明金融', time:'正在直播', dimension:'政治' },
+          { tags:['update'], title:'英国 FCA 发布加密资产监管最终规则，稳定币纳入支付框架', source:'FCA', time:'08:30', dimension:'虚拟货币' },
+          { tags:['finance','hot'], title:'伦敦成为全球绿色债券最大发行地，年内募资超 800 亿英镑', source:'气候债券倡议', time:'08:12', dimension:'宏观金融' },
         ]},
       { id:'hongkong', name:'香港', region:'东亚', lat:22.32, lng:114.17, type:'finance', color:'#3b82f6', rank:4,
         score:0.82,
         desc:'亚洲国际金融市场枢纽，全球离岸人民币业务枢纽。连通内地与全球资本的关键桥梁。',
         news:[
-          { tags:['hot','finance'], title:'恒生指数收复 19000 点，南向资金单日净买入破百亿港元', source:'HKEX', time:'10:06' },
-          { tags:['update'], title:'港交所拟推出人民币计价港股交易，双币柜台扩容至 40 只', source:'HKEX', time:'09:48' },
-          { tags:['policy'], title:'金管局维持贴现窗基本利率 5.25%，与美联储政策同步', source:'HKMA', time:'09:30' },
-          { tags:['finance','hot'], title:'香港资产管理规模突破 4 万亿港元，家族办公室数量翻倍', source:'SFC', time:'09:12' },
-          { tags:['live'], title:'【直播】港股通机制优化后的北水新动向解读', source:'大聪明金融', time:'正在直播' },
-          { tags:['update'], title:'离岸人民币隔夜 HIBOR 回落，跨境外汇交易活跃度回升', source:'财资市场公会', time:'08:52' },
-          { tags:['alert'], title:'港股卖空占比升至 18%，监管关注市场沽空压力', source:'信报', time:'08:34' },
-          { tags:['policy','finance'], title:'债券通"南向通"投资额度上调，加速大湾区资金融通', source:'PBOC', time:'08:16' },
+          { tags:['hot','finance'], title:'恒生指数收复 19000 点，南向资金单日净买入破百亿港元', source:'HKEX', time:'10:06', dimension:'宏观金融' },
+          { tags:['update'], title:'港交所拟推出人民币计价港股交易，双币柜台扩容至 40 只', source:'HKEX', time:'09:48', dimension:'宏观金融' },
+          { tags:['policy'], title:'金管局维持贴现窗基本利率 5.25%，与美联储政策同步', source:'HKMA', time:'09:30', dimension:'货币政策' },
+          { tags:['finance','hot'], title:'香港资产管理规模突破 4 万亿港元，家族办公室数量翻倍', source:'SFC', time:'09:12', dimension:'宏观金融' },
+          { tags:['live'], title:'【直播】港股通机制优化后的北水新动向解读', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' },
+          { tags:['update'], title:'离岸人民币隔夜 HIBOR 回落，跨境外汇交易活跃度回升', source:'财资市场公会', time:'08:52', dimension:'自贸区' },
+          { tags:['alert'], title:'港股卖空占比升至 18%，监管关注市场沽空压力', source:'信报', time:'08:34', dimension:'宏观金融' },
+          { tags:['policy','finance'], title:'债券通"南向通"投资额度上调，加速大湾区资金融通', source:'PBOC', time:'08:16', dimension:'自贸区' },
         ]},
       { id:'sanfrancisco', name:'旧金山', region:'北美', lat:37.77, lng:-122.42, type:'finance', color:'#3b82f6', rank:5,
         score:0.80,
         desc:'全球风投与科技金融中心，硅谷核心。纳斯达克上市科技巨头与创投资本的聚集地。',
         news:[
-          { tags:['hot','finance'], title:'纳斯达克综合指数创盘中新高，AI 概念股延续强势', source:'NASDAQ', time:'10:04' },
-          { tags:['update'], title:'硅谷一季度风险投资额环比回升 22%，AI 基建赛道吸金最多', source:'PitchBook', time:'09:46' },
-          { tags:['finance'], title:'多家科技巨头密集发债融资，投资级公司债供给创纪录', source:'Bloomberg', time:'09:28' },
-          { tags:['policy'], title:'加州立法推进 AI 安全法案，科技巨头游说寻求折中', source:'SF Chronicle', time:'09:10' },
-          { tags:['live'], title:'【连线】生成式 AI 浪潮下的科技股估值重构', source:'大聪明金融', time:'正在直播' },
-          { tags:['update'], title:'旧金山湾区 IPO 市场回暖，三家独角兽递交招股书', source:'Reuters', time:'08:48' },
-          { tags:['alert'], title:'商业地产空置率攀升至 28%，区域银行敞口引关注', source:'WSJ', time:'08:30' },
-          { tags:['finance','hot'], title:'私募信贷规模突破 1.7 万亿美元，成科技并购重要资金来源', source:'麦肯锡', time:'08:12' },
+          { tags:['hot','finance'], title:'纳斯达克综合指数创盘中新高，AI 概念股延续强势', source:'NASDAQ', time:'10:04', dimension:'科技产业' },
+          { tags:['update'], title:'硅谷一季度风险投资额环比回升 22%，AI 基建赛道吸金最多', source:'PitchBook', time:'09:46', dimension:'科技产业' },
+          { tags:['finance'], title:'多家科技巨头密集发债融资，投资级公司债供给创纪录', source:'Bloomberg', time:'09:28', dimension:'科技产业' },
+          { tags:['policy'], title:'加州立法推进 AI 安全法案，科技巨头游说寻求折中', source:'SF Chronicle', time:'09:10', dimension:'政治' },
+          { tags:['live'], title:'【连线】生成式 AI 浪潮下的科技股估值重构', source:'大聪明金融', time:'正在直播', dimension:'科技产业' },
+          { tags:['update'], title:'旧金山湾区 IPO 市场回暖，三家独角兽递交招股书', source:'Reuters', time:'08:48', dimension:'宏观金融' },
+          { tags:['alert'], title:'商业地产空置率攀升至 28%，区域银行敞口引关注', source:'WSJ', time:'08:30', dimension:'产业趋势' },
+          { tags:['finance','hot'], title:'私募信贷规模突破 1.7 万亿美元，成科技并购重要资金来源', source:'麦肯锡', time:'08:12', dimension:'货币政策' },
         ]},
       { id:'chicago', name:'芝加哥', region:'北美', lat:41.88, lng:-87.63, type:'finance', color:'#3b82f6', rank:6,
         score:0.74,
         desc:'全球衍生品与大宗商品定价中心。CME、CBOT 主导全球期货与期权交易。',
         news:[
-          { tags:['hot','finance'], title:'CME 标普500期货未平仓合约创历史新高，机构对冲需求旺盛', source:'CME Group', time:'10:00' },
-          { tags:['update'], title:'芝加哥商品交易所农产品期货成交量同比增 14%', source:'CME', time:'09:42' },
-          { tags:['finance'], title:'芝商所推出离岸人民币期权新产品，完善外汇衍生品矩阵', source:'CME', time:'09:24' },
-          { tags:['policy'], title:'美国商品期货交易委员会 CFTC 强化高频交易监管规则', source:'CFTC', time:'09:06' },
-          { tags:['alert'], title:'玉米大豆产区天气炒作升温，农产品波动率指数跳升', source:'DTN', time:'08:48' },
-          { tags:['live'], title:'【连线】大宗商品超级周期与通胀传导路径', source:'大聪明金融', time:'正在直播' },
-          { tags:['update'], title:'芝加哥联储全国活动指数转正，中西部制造业企稳', source:'Chicago Fed', time:'08:30' },
-          { tags:['finance','hot'], title:'利率期权市场押注美联储年内两次降息，波动率曲线陡峭化', source:'Bloomberg', time:'08:12' },
+          { tags:['hot','finance'], title:'CME 标普500期货未平仓合约创历史新高，机构对冲需求旺盛', source:'CME Group', time:'10:00', dimension:'宏观金融' },
+          { tags:['update'], title:'芝加哥商品交易所农产品期货成交量同比增 14%', source:'CME', time:'09:42', dimension:'宏观金融' },
+          { tags:['finance'], title:'芝商所推出离岸人民币期权新产品，完善外汇衍生品矩阵', source:'CME', time:'09:24', dimension:'自贸区' },
+          { tags:['policy'], title:'美国商品期货交易委员会 CFTC 强化高频交易监管规则', source:'CFTC', time:'09:06', dimension:'宏观金融' },
+          { tags:['alert'], title:'玉米大豆产区天气炒作升温，农产品波动率指数跳升', source:'DTN', time:'08:48', dimension:'宏观金融' },
+          { tags:['live'], title:'【连线】大宗商品超级周期与通胀传导路径', source:'大聪明金融', time:'正在直播', dimension:'能源大宗' },
+          { tags:['update'], title:'芝加哥联储全国活动指数转正，中西部制造业企稳', source:'Chicago Fed', time:'08:30', dimension:'产业趋势' },
+          { tags:['finance','hot'], title:'利率期权市场押注美联储年内两次降息，波动率曲线陡峭化', source:'Bloomberg', time:'08:12', dimension:'货币政策' },
         ]},
       { id:'shenzhen', name:'深圳', region:'华南', lat:22.54, lng:114.06, type:'finance', color:'#3b82f6', rank:9,
         score:0.76,
         desc:'中国科技创新与创业板高地。深交所所在地，硬科技企业与创投生态活跃。',
         news:[
-          { tags:['hot','finance'], title:'创业板指涨 1.5%，新能源与半导体板块共振上行', source:'深交所', time:'10:03' },
-          { tags:['update'], title:'深圳前海跨境金融试点扩容，QFLP 额度审批提速', source:'深圳特区报', time:'09:45' },
-          { tags:['policy'], title:'创业板注册制改革深化，再融资简易程序扩围', source:'证券时报', time:'09:27' },
-          { tags:['finance','hot'], title:'深圳私募股权在管规模突破 1.5 万亿元，居全国前列', source:'中基协', time:'09:09' },
-          { tags:['live'], title:'【直播】硬科技投资赛道梳理：从 VC 视角看产业拐点', source:'大聪明金融', time:'正在直播' },
-          { tags:['update'], title:'河套深港科技创新合作区跨境数据流动试点落地', source:'深圳卫视', time:'08:50' },
-          { tags:['industry'], title:'华为、比亚迪等龙头带动，深圳工业增加值增速领跑一线', source:'南方日报', time:'08:32' },
-          { tags:['alert'], title:'人民币汇率波动下，外向型企业套期保值需求激增', source:'21世纪经济报道', time:'08:14' },
+          { tags:['hot','finance'], title:'创业板指涨 1.5%，新能源与半导体板块共振上行', source:'深交所', time:'10:03', dimension:'科技产业' },
+          { tags:['update'], title:'深圳前海跨境金融试点扩容，QFLP 额度审批提速', source:'深圳特区报', time:'09:45', dimension:'自贸区' },
+          { tags:['policy'], title:'创业板注册制改革深化，再融资简易程序扩围', source:'证券时报', time:'09:27', dimension:'宏观金融' },
+          { tags:['finance','hot'], title:'深圳私募股权在管规模突破 1.5 万亿元，居全国前列', source:'中基协', time:'09:09', dimension:'宏观金融' },
+          { tags:['live'], title:'【直播】硬科技投资赛道梳理：从 VC 视角看产业拐点', source:'大聪明金融', time:'正在直播', dimension:'科技产业' },
+          { tags:['update'], title:'河套深港科技创新合作区跨境数据流动试点落地', source:'深圳卫视', time:'08:50', dimension:'自贸区' },
+          { tags:['industry'], title:'华为、比亚迪等龙头带动，深圳工业增加值增速领跑一线', source:'南方日报', time:'08:32', dimension:'产业趋势' },
+          { tags:['alert'], title:'人民币汇率波动下，外向型企业套期保值需求激增', source:'21世纪经济报道', time:'08:14', dimension:'货币政策' },
         ]},
       { id:'frankfurt', name:'法兰克福', region:'欧洲', lat:50.11, lng:8.68, type:'finance', color:'#3b82f6', rank:10,
         score:0.72,
         desc:'欧元区金融中心与欧洲央行所在地。欧元定价与欧元区银行体系核心枢纽。',
         news:[
-          { tags:['hot','finance'], title:'欧洲央行维持三大利率不变，拉加德重申数据依赖路径', source:'ECB', time:'10:01' },
-          { tags:['update'], title:'欧元兑美元站上 1.09，市场定价年内降息一次', source:'Reuters', time:'09:43' },
-          { tags:['policy'], title:'德国联邦议院通过 2026 财年预算，国防与基建支出加码', source:'Handelsblatt', time:'09:25' },
-          { tags:['finance'], title:'法兰克福证交所 Xetra 交易时长延长，覆盖亚太时段', source:'Deutsche Börse', time:'09:07' },
-          { tags:['alert'], title:'德国商业银行与裕信并购案引发监管审查，欧元区银行业整合生变', source:'FT', time:'08:49' },
-          { tags:['live'], title:'【连线】欧元区通胀回落路径与欧债收益率走势', source:'大聪明金融', time:'正在直播' },
-          { tags:['update'], title:'欧元清算业务加速向法兰克福集聚，脱欧红利持续释放', source:'Bloomberg', time:'08:31' },
-          { tags:['finance','hot'], title:'欧元区绿色债券发行占比升至 45%，法兰克福主导定价', source:'气候债券倡议', time:'08:13' },
+          { tags:['hot','finance'], title:'欧洲央行维持三大利率不变，拉加德重申数据依赖路径', source:'ECB', time:'10:01', dimension:'货币政策' },
+          { tags:['update'], title:'欧元兑美元站上 1.09，市场定价年内降息一次', source:'Reuters', time:'09:43', dimension:'货币政策' },
+          { tags:['policy'], title:'德国联邦议院通过 2026 财年预算，国防与基建支出加码', source:'Handelsblatt', time:'09:25', dimension:'地缘军事' },
+          { tags:['finance'], title:'法兰克福证交所 Xetra 交易时长延长，覆盖亚太时段', source:'Deutsche Börse', time:'09:07', dimension:'宏观金融' },
+          { tags:['alert'], title:'德国商业银行与裕信并购案引发监管审查，欧元区银行业整合生变', source:'FT', time:'08:49', dimension:'宏观金融' },
+          { tags:['live'], title:'【连线】欧元区通胀回落路径与欧债收益率走势', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' },
+          { tags:['update'], title:'欧元清算业务加速向法兰克福集聚，脱欧红利持续释放', source:'Bloomberg', time:'08:31', dimension:'政治' },
+          { tags:['finance','hot'], title:'欧元区绿色债券发行占比升至 45%，法兰克福主导定价', source:'气候债券倡议', time:'08:13', dimension:'宏观金融' },
         ]},
       { id:'zurich', name:'苏黎世', region:'欧洲', lat:47.37, lng:8.54, type:'finance', color:'#3b82f6', rank:12,
         score:0.70,
         desc:'全球财富管理与私人银行中心。瑞士金融监管稳健，离岸资产托管规模居首。',
         news:[
-          { tags:['hot','finance'], title:'瑞银集团财富管理 AUM 突破 5.6 万亿美元，整合瑞信渐近尾声', source:'UBS', time:'09:58' },
-          { tags:['update'], title:'瑞士法郎避险需求升温，美元兑瑞郎跌至 0.88', source:'SNB', time:'09:40' },
-          { tags:['policy'], title:'瑞士央行 SNB 意外降息 25BP 至 1.0%，遏制瑞郎升值', source:'SNB', time:'09:22' },
-          { tags:['finance'], title:'苏黎世保险集团上调巨灾准备金，应对气候相关赔付', source:'Zurich Insurance', time:'09:04' },
-          { tags:['alert'], title:'全球最低税率落地，瑞士各州竞相调整企业税以留住控股总部', source:'NZZ', time:'08:46' },
-          { tags:['live'], title:'【连线】全球家族办公室资产配置的新范式', source:'大聪明金融', time:'正在直播' },
-          { tags:['update'], title:'瑞士私人银行加密资产托管规模同比翻倍', source:'Finews', time:'08:28' },
-          { tags:['finance','hot'], title:'黄金 ETF 资金回流，苏黎世贵金属交易枢纽地位巩固', source:'World Gold Council', time:'08:10' },
+          { tags:['hot','finance'], title:'瑞银集团财富管理 AUM 突破 5.6 万亿美元，整合瑞信渐近尾声', source:'UBS', time:'09:58', dimension:'宏观金融' },
+          { tags:['update'], title:'瑞士法郎避险需求升温，美元兑瑞郎跌至 0.88', source:'SNB', time:'09:40', dimension:'宏观金融' },
+          { tags:['policy'], title:'瑞士央行 SNB 意外降息 25BP 至 1.0%，遏制瑞郎升值', source:'SNB', time:'09:22', dimension:'货币政策' },
+          { tags:['finance'], title:'苏黎世保险集团上调巨灾准备金，应对气候相关赔付', source:'Zurich Insurance', time:'09:04', dimension:'宏观金融' },
+          { tags:['alert'], title:'全球最低税率落地，瑞士各州竞相调整企业税以留住控股总部', source:'NZZ', time:'08:46', dimension:'宏观金融' },
+          { tags:['live'], title:'【连线】全球家族办公室资产配置的新范式', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' },
+          { tags:['update'], title:'瑞士私人银行加密资产托管规模同比翻倍', source:'Finews', time:'08:28', dimension:'虚拟货币' },
+          { tags:['finance','hot'], title:'黄金 ETF 资金回流，苏黎世贵金属交易枢纽地位巩固', source:'World Gold Council', time:'08:10', dimension:'能源大宗' },
         ]},
       { id:'paris', name:'巴黎', region:'欧洲', lat:48.86, lng:2.35, type:'finance', color:'#3b82f6', rank:13,
         score:0.68,
         desc:'欧元区重要金融与资本市场中心。泛欧交易所总部，资产管理与保险业高度发达。',
         news:[
-          { tags:['hot','finance'], title:'CAC40 指数收涨 0.6%，奢侈品与银行板块反弹', source:'Euronext', time:'09:57' },
-          { tags:['update'], title:'泛欧交易所 EURONEXT 成交量创季度新高，跨境上市提速', source:'Euronext', time:'09:39' },
-          { tags:['policy'], title:'法国预算案削减赤字至 GDP 的 5.4%，引发议会拉锯', source:'Les Échos', time:'09:21' },
-          { tags:['finance'], title:'法国安盛资管规模突破 1 万亿欧元，欧洲最大保险资管的再平衡', source:'AXA', time:'09:03' },
-          { tags:['alert'], title:'法国政治不确定性推升 OAT 收益率，与德债利差走阔', source:'Reuters', time:'08:45' },
-          { tags:['live'], title:'【连线】欧洲资本市场联盟进程与跨境资本流动', source:'大聪明金融', time:'正在直播' },
-          { tags:['update'], title:'巴黎力图吸引伦敦外溢金融岗位，已新增 4000 个岗位', source:'Bloomberg', time:'08:27' },
-          { tags:['finance','hot'], title:'法国绿色与可持续基金净流入连续 6 季度为正', source:'Morningstar', time:'08:09' },
+          { tags:['hot','finance'], title:'CAC40 指数收涨 0.6%，奢侈品与银行板块反弹', source:'Euronext', time:'09:57', dimension:'宏观金融' },
+          { tags:['update'], title:'泛欧交易所 EURONEXT 成交量创季度新高，跨境上市提速', source:'Euronext', time:'09:39', dimension:'自贸区' },
+          { tags:['policy'], title:'法国预算案削减赤字至 GDP 的 5.4%，引发议会拉锯', source:'Les Échos', time:'09:21', dimension:'政治' },
+          { tags:['finance'], title:'法国安盛资管规模突破 1 万亿欧元，欧洲最大保险资管的再平衡', source:'AXA', time:'09:03', dimension:'宏观金融' },
+          { tags:['alert'], title:'法国政治不确定性推升 OAT 收益率，与德债利差走阔', source:'Reuters', time:'08:45', dimension:'宏观金融' },
+          { tags:['live'], title:'【连线】欧洲资本市场联盟进程与跨境资本流动', source:'大聪明金融', time:'正在直播', dimension:'自贸区' },
+          { tags:['update'], title:'巴黎力图吸引伦敦外溢金融岗位，已新增 4000 个岗位', source:'Bloomberg', time:'08:27', dimension:'宏观金融' },
+          { tags:['finance','hot'], title:'法国绿色与可持续基金净流入连续 6 季度为正', source:'Morningstar', time:'08:09', dimension:'宏观金融' },
         ]},
       { id:'toronto', name:'多伦多', region:'北美', lat:43.65, lng:-79.38, type:'finance', color:'#3b82f6', rank:18,
         score:0.66,
         desc:'北美重要金融中心与全球矿业融资枢纽。多伦多证交所 TSX 主导资源类 IPO。',
         news:[
-          { tags:['hot','finance'], title:'多伦多证交所 S&P/TSX 综合指数创历史新高，金融与能源板块领涨', source:'TMX', time:'09:55' },
-          { tags:['update'], title:'加拿大央行维持利率 3.0%，暗示通胀回归目标', source:'Bank of Canada', time:'09:37' },
-          { tags:['finance'], title:'全球矿业融资 60% 经由多伦多市场，黄金铜锂项目密集路演', source:'TMX', time:'09:19' },
-          { tags:['policy'], title:'加拿大联邦预算聚焦住房与国防，赤字温和扩张', source:'Globe and Mail', time:'09:01' },
-          { tags:['alert'], title:'加元兑美元走弱至 1.38，出口导向型企业受益', source:'Reuters', time:'08:43' },
-          { tags:['live'], title:'【连线】资源型经济体的周期定位与配置机会', source:'大聪明金融', time:'正在直播' },
-          { tags:['update'], title:'多伦多金融科技融资回暖，支付与借贷赛道活跃', source:'BetaKit', time:'08:25' },
-          { tags:['finance','hot'], title:'北美养老金巨头发力基建与私募信贷，另类资产配置占比升至 35%', source:'CPPIB', time:'08:07' },
+          { tags:['hot','finance'], title:'多伦多证交所 S&P/TSX 综合指数创历史新高，金融与能源板块领涨', source:'TMX', time:'09:55', dimension:'能源大宗' },
+          { tags:['update'], title:'加拿大央行维持利率 3.0%，暗示通胀回归目标', source:'Bank of Canada', time:'09:37', dimension:'货币政策' },
+          { tags:['finance'], title:'全球矿业融资 60% 经由多伦多市场，黄金铜锂项目密集路演', source:'TMX', time:'09:19', dimension:'能源大宗' },
+          { tags:['policy'], title:'加拿大联邦预算聚焦住房与国防，赤字温和扩张', source:'Globe and Mail', time:'09:01', dimension:'地缘军事' },
+          { tags:['alert'], title:'加元兑美元走弱至 1.38，出口导向型企业受益', source:'Reuters', time:'08:43', dimension:'宏观金融' },
+          { tags:['live'], title:'【连线】资源型经济体的周期定位与配置机会', source:'大聪明金融', time:'正在直播', dimension:'宏观金融' },
+          { tags:['update'], title:'多伦多金融科技融资回暖，支付与借贷赛道活跃', source:'BetaKit', time:'08:25', dimension:'科技产业' },
+          { tags:['finance','hot'], title:'北美养老金巨头发力基建与私募信贷，另类资产配置占比升至 35%', source:'CPPIB', time:'08:07', dimension:'货币政策' },
         ]},
     ];
 
@@ -855,6 +878,8 @@
       const canvas = document.getElementById('globeCanvas');
       if (!window.THREE || !canvas) {
         console.error('[globe] WebGL/THREE unavailable, 3D earth disabled');
+        const fb = document.getElementById('globeFallback');
+        if (fb) { fb.textContent = '当前环境不支持 WebGL，3D 地球已降级为静态展示。'; fb.hidden = false; }
         return;
       }
       try {
@@ -987,6 +1012,8 @@
         window.addEventListener('resize', onGlobeResize);
       } catch (err) {
         console.error('[globe] init failed', err);
+        const fb = document.getElementById('globeFallback');
+        if (fb) { fb.textContent = '3D 地球初始化失败，已降级为静态展示。'; fb.hidden = false; }
       }
     }
 
@@ -1252,7 +1279,7 @@
 
     // ===== 右侧新闻面板 =====
     let activeNodeId = null;
-    let newsPanel, newsPanelCity, newsPanelMeta, newsPanelList, newsPanelSub, newsPanelFoot;
+    let newsPanel, newsPanelCity, newsPanelMeta, newsPanelList, newsPanelSub, newsPanelFoot, newsFilter;
 
     function initNewsPanel() {
       newsPanel = document.getElementById('newsPanel');
@@ -1261,6 +1288,25 @@
       newsPanelList = document.getElementById('newsPanelList');
       newsPanelSub = document.getElementById('newsPanelSub');
       newsPanelFoot = document.getElementById('newsPanelFoot');
+      newsFilter = document.getElementById('newsFilter');
+      buildNewsFilter();
+    }
+
+    /* 构建维度筛选条：全部 + 10 个宏观维度；点击按维度过滤当前城市新闻 */
+    function buildNewsFilter() {
+      if (!newsFilter) return;
+      const chips = [{ key:'all', cn:'全部' }].concat(DIMENSIONS);
+      newsFilter.innerHTML = chips.map(c =>
+        '<span class="chip' + (c.key === activeDimension ? ' active' : '') + '" data-dim="' + (c.key === 'all' ? 'all' : c.cn) + '">' + c.cn + '</span>'
+      ).join('');
+      newsFilter.querySelectorAll('.chip').forEach(el => {
+        el.addEventListener('click', () => {
+          activeDimension = el.dataset.dim;
+          newsFilter.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+          el.classList.add('active');
+          if (currentNewsNode) renderNewsList(currentNewsNode);
+        });
+      });
     }
 
     function selectNode(nodeId) {
@@ -1298,6 +1344,7 @@
     }
     // 切换城市：旧列表上移淡出 -> 刷新 -> 新列表下移淡入；reduced-motion 直接刷新
     function updateNews(node, animate) {
+      currentNewsNode = node;
       renderNewsHeader(node);
       updateFoot();
       if (!animate) { renderNewsList(node); return; }
@@ -1320,6 +1367,18 @@
       if (node && typeof node.score === 'number') s += (node.score - 0.5) * 4; // 全球中心加权 ~ -0.04..+1.24
       return s;
     }
+    /* V3.0 维度体系：10 个宏观维度（中文名 ↔ CSS key），用于新闻双标签与维度筛选 */
+    const DIMENSIONS = [
+      { key:'politics', cn:'政治' }, { key:'geopolitics', cn:'地缘军事' },
+      { key:'monetary', cn:'货币政策' }, { key:'supply-chain', cn:'供应链物流' },
+      { key:'free-trade', cn:'自贸区' }, { key:'tech', cn:'科技产业' },
+      { key:'energy', cn:'能源大宗' }, { key:'industry', cn:'产业趋势' },
+      { key:'crypto', cn:'虚拟货币' }, { key:'macro', cn:'宏观金融' }
+    ];
+    const DIM_KEY = { '政治':'politics','地缘军事':'geopolitics','货币政策':'monetary','供应链物流':'supply-chain','自贸区':'free-trade','科技产业':'tech','能源大宗':'energy','产业趋势':'industry','虚拟货币':'crypto','宏观金融':'macro' };
+    let activeDimension = 'all';   // 维度筛选：'all' 或某维度中文名
+    let currentNewsNode = null;   // 当前展示新闻的节点（供维度筛选重渲染）
+
     // 相对时间：'HH:MM' -> 'X分钟前' / 'X小时前'；'正在直播' 原样
     function relTime(timeStr) {
       if (!timeStr || timeStr.indexOf('直播') >= 0) return timeStr || '';
@@ -1346,19 +1405,32 @@
     }
     function renderNewsList(node) {
       if (!node.news || !node.news.length) { renderNewsListSkeleton(); return; }
+      // 维度筛选：无论选中哪个城市，新闻须同时满足「该城市」与「该维度」双重条件
+      const filtered = (activeDimension === 'all')
+        ? node.news
+        : node.news.filter(n => (n.dimension || '宏观金融') === activeDimension);
+      if (!filtered.length) {
+        newsPanelList.innerHTML = '<div class="news-empty">该维度下暂无' + node.name + '相关热点<small>切换维度或城市查看其它资讯</small></div>';
+        return;
+      }
       // 按金融重要程度降序排序（稳定排序，重要度相同保持原序）
-      const ranked = node.news
+      const ranked = filtered
         .map((it, i) => ({ it, i, imp: newsImportance(it, node) }))
         .sort((a, b) => (b.imp - a.imp) || (a.i - b.i))
         .map(x => x.it);
       newsPanelList.innerHTML = ranked.map((item, idx) => {
+        const dimCn = item.dimension || '宏观金融';
+        const dk = DIM_KEY[dimCn] || 'macro';
         const tag = (item.tags && item.tags[0]) || '';
         const tagLabel = { hot:'热门', live:'直播', policy:'政策', finance:'金融', industry:'产业', energy:'能源', alert:'预警', update:'更新', trade:'贸易', resource:'资源' }[tag] || tag;
         const rankCls = idx === 0 ? ' top top1' : (idx < 3 ? ' top' : '');
         return '<div class="news-item' + rankCls + '">' +
+          '<div class="news-tags-row">' +
+            '<span class="dimension-tag ' + dk + '">' + dimCn + '</span>' +
+            (tagLabel ? '<span class="news-tag ' + tag + '">' + tagLabel + '</span>' : '') +
+          '</div>' +
           '<div class="news-title"><span class="news-rank">#' + (idx + 1) + '</span>' + item.title + '</div>' +
-          '<div class="news-meta">' + (tagLabel ? '<span class="news-tag ' + tag + '">' + tagLabel + '</span>' : '') +
-          '<span>' + item.source + '</span>' +
+          '<div class="news-meta"><span>' + item.source + '</span>' +
           '<span class="news-time" data-time="' + item.time + '">' + relTime(item.time) + '</span></div></div>';
       }).join('');
     }
