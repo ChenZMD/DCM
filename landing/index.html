@@ -180,7 +180,7 @@
       border-left: 1px solid var(--border);
       z-index: 5;
       padding: 24px 24px 40px;
-      overflow-y: auto;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
     }
@@ -249,8 +249,8 @@
     .dimension-tag.industry { background: #6366F1; }
     .dimension-tag.crypto { background: #EAB308; }
     .dimension-tag.macro { background: #6B7280; }
-    /* 维度筛选条 */
-    .news-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 14px; flex-shrink: 0; }
+    /* 维度筛选条（右侧已升级为研报看板，旧新闻维度筛选不再使用） */
+    .news-filter { display: none; }
     .news-filter .chip { font-size: 11px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border-soft); color: var(--text-400); cursor: pointer; transition: all .16s ease; background: transparent; }
     .news-filter .chip:hover { border-color: rgba(0, 212, 255, .5); color: #2fd4e6; }
     .news-filter .chip.active { background: #2fd4e6; color: #04121a; border-color: #2fd4e6; font-weight: 600; }
@@ -298,6 +298,68 @@
     .demo-pill { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: rgba(142,167,192,0.12); color: var(--text-400); }
     .realtime-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: rgba(54,224,160,0.14); color: var(--ok); }
     .realtime-pill .rt-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--ok); animation: pulse 1.2s ease-out infinite; }
+
+    /* ===== 研报看板（V4.7：右侧新闻面板升级为产业/宏观深度研报看板） ===== */
+    .report-container { flex: 1; min-height: 0; overflow-y: auto; padding-right: 2px; }
+    .report-container::-webkit-scrollbar { width: 6px; }
+    .report-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+    .report-container::-webkit-scrollbar-track { background: transparent; }
+
+    .report-module { margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; background: rgba(255,255,255,0.03); overflow: hidden; }
+    .module-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; cursor: pointer; user-select: none; }
+    .module-head .seq {
+      display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 22px; padding: 0 6px;
+      background: rgba(0, 255, 255, 0.1); color: #00FFFF; border-radius: 5px; font-weight: 700; font-size: 12px; letter-spacing: 0;
+    }
+    .module-head .seq::before { content: '[ '; opacity: .55; }
+    .module-head .seq::after { content: ' ]'; opacity: .55; }
+    .module-head .m-title { font-size: 14px; font-weight: 700; color: #eaf4ff; flex: 1; }
+    .module-head .m-toggle { color: var(--text-400); font-size: 12px; transition: transform .25s ease; }
+    .report-module.collapsed .m-toggle { transform: rotate(-90deg); }
+    .module-body { padding: 0 14px 14px; max-height: 2000px; opacity: 1; overflow: hidden; transition: max-height .3s ease, opacity .3s ease, padding .3s ease; }
+    .report-module.collapsed .module-body { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+
+    /* 模块一：核心看点 */
+    .takeaway { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .takeaway:last-child { border-bottom: none; }
+    .takeaway .t-title { font-size: 13.5px; font-weight: 600; color: #eaf4ff; line-height: 1.55; display: flex; gap: 7px; align-items: flex-start; }
+    .takeaway .t-title::before { content: ''; flex: 0 0 auto; width: 6px; height: 6px; margin-top: 7px; border-radius: 50%; background: #00d4ff; box-shadow: 0 0 6px rgba(0,212,255,.6); }
+    .takeaway.important .t-title { color: #FFD700; }
+    .takeaway .t-desc { font-size: 12px; color: var(--text-400); line-height: 1.6; margin-top: 6px; padding-left: 13px;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    .highlight-yellow { color: #FFD700; font-weight: 700; }
+
+    /* 模块二：核心度评分卡片 */
+    .score-card { display: flex; gap: 16px; }
+    .score-left { flex: 0 0 128px; }
+    .score-overall { font-size: 34px; font-weight: 800; color: #00FFFF; line-height: 1; font-variant-numeric: tabular-nums; }
+    .score-overall small { font-size: 11px; color: var(--text-400); font-weight: 500; display: block; margin-top: 4px; letter-spacing: .5px; }
+    .score-dims { margin-top: 12px; }
+    .score-dim { margin-bottom: 9px; }
+    .score-dim .sd-name { font-size: 11px; color: var(--text-400); display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .score-dim .sd-name b { color: #cfe6ff; font-weight: 600; }
+    .score-dim .sd-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .score-dim .sd-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #007bff, #00FFFF); }
+    .score-right { flex: 1; min-width: 0; }
+    .score-right .sr-title { font-size: 12px; font-weight: 700; color: #eaf4ff; margin-bottom: 8px; }
+    .score-right ul { list-style: none; padding: 0; margin: 0; }
+    .score-right li { font-size: 12px; color: var(--text-400); line-height: 1.8; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+    .score-right .co { color: #FFD700; font-weight: 700; }
+    .score-right .geo { display: inline-block; margin-left: 4px; padding: 1px 7px; border-radius: 999px; font-size: 10px; border: 1px solid rgba(255,255,255,0.2); color: var(--text-400); }
+
+    /* 模块三：链路节点分类图 */
+    .chain-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .chain-filter { font-size: 11px; padding: 3px 10px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); color: var(--text-400); cursor: pointer; background: transparent; transition: all .16s ease; }
+    .chain-filter:hover { border-color: rgba(0,212,255,.5); color: #2fd4e6; }
+    .chain-filter.active { background: #2fd4e6; color: #04121a; border-color: #2fd4e6; font-weight: 600; }
+    .chain-tree { padding-left: 14px; border-left: 1px solid rgba(255,255,255,0.18); }
+    .chain-node { position: relative; padding: 8px 0 8px 14px; }
+    .chain-node::before { content: '•'; position: absolute; left: -6px; top: 5px; color: #00d4ff; font-size: 14px; line-height: 1; }
+    .chain-node .cn-title { font-size: 13px; font-weight: 600; color: #eaf4ff; }
+    .chain-node .cn-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 10px; background: rgba(0,212,255,0.14); color: #00d4ff; }
+    .chain-node .cn-desc { font-size: 11.5px; color: var(--text-400); line-height: 1.6; margin-top: 4px; }
+    .chain-sub { padding-left: 18px; margin-top: 6px; border-left: 1px solid rgba(255,255,255,0.1); }
+    .chain-sub .chain-node::before { color: var(--text-400); }
 
     /* ===== 底部操作提示 ===== */
     .hint {
@@ -414,9 +476,8 @@
         <div class="news-panel-sub" id="newsPanelSub">金融热点 · 按重要度排序</div>
         <div class="news-panel-meta" id="newsPanelMeta">--</div>
       </div>
-      <div class="news-filter" id="newsFilter"></div>
-      <div class="news-panel-list" id="newsPanelList"></div>
-      <div class="news-panel-foot" id="newsPanelFoot">演示数据</div>
+      <div class="news-panel-list report-container" id="newsPanelList"></div>
+      <div class="news-panel-foot" id="newsPanelFoot">演示数据 · 研报看板</div>
     </aside>
   </div>
 
@@ -695,6 +756,7 @@
     const CITY_TZ = {
       beijing:'Asia/Shanghai', shanghai:'Asia/Shanghai', guangzhou:'Asia/Shanghai', chengdu:'Asia/Shanghai',
       xian:'Asia/Shanghai', shenzhen:'Asia/Shanghai', hongkong:'Asia/Hong_Kong',
+      ningbo:'Asia/Shanghai', qingdao:'Asia/Shanghai', tianjin:'Asia/Shanghai', busan:'Asia/Seoul', rotterdam:'Europe/Amsterdam',
       singapore:'Asia/Singapore', tokyo:'Asia/Tokyo', mumbai:'Asia/Kolkata', dubai:'Asia/Dubai',
       sydney:'Australia/Sydney', newyork:'America/New_York', london:'Europe/London',
       sanfrancisco:'America/Los_Angeles', chicago:'America/Chicago', frankfurt:'Europe/Berlin',
@@ -1456,6 +1518,151 @@
     let activeNodeId = null;
     let newsPanel, newsPanelCity, newsPanelMeta, newsPanelList, newsPanelSub, newsPanelFoot, newsFilter;
 
+    // ===== V4.7 研报看板：Mock 数据 + 渲染（演示数据，非真实研报） =====
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    const REPORT_DATE = (function () { const d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); })();
+    const REVIEW_DATE = (function () { const d = new Date(); d.setDate(d.getDate() - 1); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); })();
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+    const reportData = {
+      'beijing': {
+        takeAways: [
+          { title: '化工小料刚需，关键是利润与库存控制', desc: '小料并非天然短缺，赚的是价差与周转；万华、华峰等龙头凭规模与工艺卡位，景气度取决于下游地产/汽车复苏节奏。', isImportant: true },
+          { title: '维生素涨势凌厉，但多为周期驱动', desc: '维生素系列受海外装置检修与库存低位推动，价格弹性高；需警惕新增产能投放后的回落风险。', isImportant: false },
+          { title: '宏观刺激密集，风险偏好边际回暖', desc: '降准与设备更新政策托底内需，北交所/科创板块融资环境改善。', isImportant: false }
+        ],
+        scoreCard: { overall: 0.72, items: [ { name: '刚需', value: 0.60 }, { name: '景气', value: 0.70 }, { name: '权益', value: 0.65 }, { name: '定价', value: 0.55 } ] },
+        coreInfo: {
+          domestic: [ '万华化学：MDI 全球龙头，成本优势显著', '华峰化学：氨纶/己二酸弹性标的' ],
+          overseas: [ '巴斯夫：欧洲产能承压，部分产线东移', '科思创：TPU 景气跟随' ]
+        },
+        chainMap: {
+          filters: [ { label: '刚性 1', type: 'rigid' }, { label: '半刚性 5', type: 'semi' }, { label: '非刚性 3', type: 'flex' }, { label: '产业约束', type: 'constraint' }, { label: '海外场景', type: 'overseas' } ],
+          nodes: [
+            { title: '化工小料基础', types: [ 'rigid', 'semi' ], subs: [ { title: '半刚性 2', desc: '基础原料与中间体，产能出清接近尾声', types: [ 'semi' ] }, { title: '刚性 1', desc: 'MDI/ADI 高壁垒寡头格局', types: [ 'rigid' ] } ] },
+            { title: '下游应用', types: [ 'flex', 'constraint' ], subs: [ { title: '非刚性 3', desc: '涂料/胶粘剂随地产波动', types: [ 'flex' ] }, { title: '产业约束', desc: '能耗双控与园区安全准入', types: [ 'constraint' ] } ] },
+            { title: '海外映射', types: [ 'overseas' ], subs: [ { title: '海外场景', desc: '欧洲能源成本高位，进口替代窗口', types: [ 'overseas' ] } ] }
+          ]
+        }
+      },
+      'shanghai': {
+        takeAways: [
+          { title: '离岸人民币活跃，北向资金回流', desc: '陆股通扩容在即，外资增配核心资产；离岸汇率波动加大，政策预期主导。', isImportant: true },
+          { title: '航运枢纽地位稳固，洋山吞吐创新高', desc: '集装箱枢纽受益于转口与中转，供应链韧性强化。', isImportant: false },
+          { title: '硬科技属性强化，科创板蓄水池效应', desc: '半导体/AI 国产替代进度超预期，算力补贴加码。', isImportant: false }
+        ],
+        scoreCard: { overall: 0.81, items: [ { name: '刚需', value: 0.70 }, { name: '景气', value: 0.75 }, { name: '权益', value: 0.80 }, { name: '定价', value: 0.70 } ] },
+        coreInfo: {
+          domestic: [ '交通银行 / 浦发：低估值高股息', '中芯国际：国产晶圆代工核心' ],
+          overseas: [ '高盛 / 摩根：亚太配置倾斜', '台积电：先进制程景气' ]
+        },
+        chainMap: {
+          filters: [ { label: '刚性 1', type: 'rigid' }, { label: '半刚性 5', type: 'semi' }, { label: '非刚性 3', type: 'flex' }, { label: '产业约束', type: 'constraint' }, { label: '海外场景', type: 'overseas' } ],
+          nodes: [
+            { title: '金融枢纽', types: [ 'rigid' ], subs: [ { title: '刚性 1', desc: '人民币离岸清算与跨境支付', types: [ 'rigid' ] }, { title: '半刚性 2', desc: '资管/投行牌照壁垒', types: [ 'semi' ] } ] },
+            { title: '硬科技链条', types: [ 'semi', 'flex' ], subs: [ { title: '半刚性 3', desc: '半导体设备与材料国产替代', types: [ 'semi' ] }, { title: '非刚性 3', desc: 'AI 应用与算力租赁', types: [ 'flex' ] } ] },
+            { title: '航运与贸易', types: [ 'constraint', 'overseas' ], subs: [ { title: '产业约束', desc: '港口吞吐与通关时效约束', types: [ 'constraint' ] }, { title: '海外场景', desc: '转口贸易与中东/欧洲航线', types: [ 'overseas' ] } ] }
+          ]
+        }
+      },
+      'newyork': {
+        takeAways: [
+          { title: '美元利率高位震荡，信用周期见顶', desc: '联储降息节奏主导全球流动性，长端利率对估值压制仍在。', isImportant: true },
+          { title: 'AI 资本开支持续，云厂商业绩兑现', desc: '大模型训练与推理需求拉动算力链，硬件景气强于应用。', isImportant: false },
+          { title: '金融条件边际放松，并购活动回温', desc: 'IPO 与再融资窗口随利率预期改善。', isImportant: false }
+        ],
+        scoreCard: { overall: 0.85, items: [ { name: '刚需', value: 0.75 }, { name: '景气', value: 0.80 }, { name: '权益', value: 0.85 }, { name: '定价', value: 0.80 } ] },
+        coreInfo: {
+          domestic: [ '摩根大通：净息差韧性强', '英伟达：AI 算力垄断地位' ],
+          overseas: [ '汇丰：跨岸美元清算', 'ASML：光刻垄断' ]
+        },
+        chainMap: {
+          filters: [ { label: '刚性 1', type: 'rigid' }, { label: '半刚性 5', type: 'semi' }, { label: '非刚性 3', type: 'flex' }, { label: '产业约束', type: 'constraint' }, { label: '海外场景', type: 'overseas' } ],
+          nodes: [
+            { title: '美元流动性', types: [ 'rigid' ], subs: [ { title: '刚性 1', desc: '美债与离岸美元清算中枢', types: [ 'rigid' ] }, { title: '半刚性 2', desc: '回购与货币市场基金', types: [ 'semi' ] } ] },
+            { title: 'AI 算力链', types: [ 'semi', 'flex' ], subs: [ { title: '半刚性 3', desc: 'GPU/网络/存储硬件', types: [ 'semi' ] }, { title: '非刚性 3', desc: '模型与应用层', types: [ 'flex' ] } ] },
+            { title: '跨境映射', types: [ 'overseas', 'constraint' ], subs: [ { title: '海外场景', desc: '欧洲/亚太资金流', types: [ 'overseas' ] }, { title: '产业约束', desc: '监管与反垄断审查', types: [ 'constraint' ] } ] }
+          ]
+        }
+      },
+      'london': {
+        takeAways: [
+          { title: '欧洲复苏偏弱，地缘溢价抬升', desc: '能源与防务开支刚性，英欧贸易摩擦边际缓和。', isImportant: true },
+          { title: '金融城地位稳固，离岸人民币中心', desc: '中英资本市场互联互通深化，资产管理净流入。', isImportant: false },
+          { title: '监管趋严，ESG 与披露成本上行', desc: 'CSRD 合规推高中后台投入。', isImportant: false }
+        ],
+        scoreCard: { overall: 0.68, items: [ { name: '刚需', value: 0.60 }, { name: '景气', value: 0.62 }, { name: '权益', value: 0.66 }, { name: '定价', value: 0.60 } ] },
+        coreInfo: {
+          domestic: [ '汇丰控股：亚太利润引擎', '巴克莱：投行业务修复' ],
+          overseas: [ '法国巴黎银行：欧陆对公', '安联：保险资产' ]
+        },
+        chainMap: {
+          filters: [ { label: '刚性 1', type: 'rigid' }, { label: '半刚性 5', type: 'semi' }, { label: '非刚性 3', type: 'flex' }, { label: '产业约束', type: 'constraint' }, { label: '海外场景', type: 'overseas' } ],
+          nodes: [
+            { title: '金融中枢', types: [ 'rigid', 'semi' ], subs: [ { title: '刚性 1', desc: '清算与外汇交易', types: [ 'rigid' ] }, { title: '半刚性 2', desc: '资管与保险', types: [ 'semi' ] } ] },
+            { title: '地缘与能源', types: [ 'constraint' ], subs: [ { title: '产业约束', desc: '防务开支与能源安全', types: [ 'constraint' ] }, { title: '非刚性 3', desc: '天然气贸易弹性', types: [ 'flex' ] } ] },
+            { title: '欧陆联动', types: [ 'overseas' ], subs: [ { title: '海外场景', desc: '巴黎/法兰克福资金流', types: [ 'overseas' ] } ] }
+          ]
+        }
+      }
+    };
+    // 兜底生成器：未提供详细研报的城市，基于节点 desc + 头条生成，保证不空
+    function reportFallback(node) {
+      const news = (node.news || []).slice(0, 3).map((n, i) => ({
+        title: n.title, desc: (n.source || '') + ' · ' + (n.dimension || ''), isImportant: i === 0
+      }));
+      return {
+        takeAways: news.length ? news : [ { title: (node.desc || (node.name + '区域宏观要点')), desc: '演示数据，待研报接入', isImportant: false } ],
+        scoreCard: { overall: node.score || 0.5, items: [ { name: '刚需', value: 0.5 }, { name: '景气', value: 0.6 }, { name: '权益', value: 0.55 }, { name: '定价', value: 0.5 } ] },
+        coreInfo: { domestic: [ node.name + ' 本地核心企业（演示）' ], overseas: [ '对应海外同业（演示）' ] },
+        chainMap: {
+          filters: [ { label: '刚性 1', type: 'rigid' }, { label: '半刚性 5', type: 'semi' }, { label: '非刚性 3', type: 'flex' }, { label: '产业约束', type: 'constraint' }, { label: '海外场景', type: 'overseas' } ],
+          nodes: [
+            { title: node.name + ' 产业链基础', types: [ 'semi', 'rigid' ], subs: [ { title: '半刚性 2', desc: node.desc || '', types: [ 'semi' ] }, { title: '刚性 1', desc: '核心产能环节（演示）', types: [ 'rigid' ] } ] },
+            { title: '海外映射', types: [ 'overseas' ], subs: [ { title: '海外场景', desc: '对应国际同业联动（演示）', types: [ 'overseas' ] } ] }
+          ]
+        }
+      };
+    }
+    function getReport(node) { return reportData[node.id] || reportFallback(node); }
+    function chainNodeHtml(n) {
+      const subs = (n.subs || []).map(s =>
+        '<div class="chain-node" data-types="' + (s.types || []).join(',') + '">' +
+          '<div class="cn-title">' + esc(s.title) + (s.badge ? '<span class="cn-badge">' + esc(s.badge) + '</span>' : '') + '</div>' +
+          (s.desc ? '<div class="cn-desc">' + esc(s.desc) + '</div>' : '') + '</div>'
+      ).join('');
+      return '<div class="chain-node" data-types="' + (n.types || []).join(',') + '">' +
+        '<div class="cn-title">' + esc(n.title) + (n.badge ? '<span class="cn-badge">' + esc(n.badge) + '</span>' : '') + '</div>' +
+        (n.desc ? '<div class="cn-desc">' + esc(n.desc) + '</div>' : '') +
+        (subs ? '<div class="chain-sub">' + subs + '</div>' : '') + '</div>';
+    }
+    function renderReport(node) {
+      if (!newsPanelList) return;
+      const r = getReport(node);
+      const takeHtml = r.takeAways.map(t =>
+        '<div class="takeaway' + (t.isImportant ? ' important' : '') + '"><div class="t-title">' + esc(t.title) + '</div>' +
+        (t.desc ? '<div class="t-desc">' + esc(t.desc) + '</div>' : '') + '</div>'
+      ).join('');
+      const dimsHtml = r.scoreCard.items.map(d =>
+        '<div class="score-dim"><div class="sd-name"><span>' + esc(d.name) + '</span><b>' + Math.round(d.value * 100) + '</b></div>' +
+        '<div class="sd-bar"><div class="sd-fill" style="width:' + Math.round(d.value * 100) + '%"></div></div></div>'
+      ).join('');
+      const coreHtml = (r.coreInfo ? ('<ul>' +
+        (r.coreInfo.domestic || []).map(x => '<li><span class="co">' + esc(x) + '</span></li>').join('') +
+        (r.coreInfo.overseas || []).map(x => '<li><span class="co">' + esc(x) + '</span><span class="geo">海外</span></li>').join('') +
+        '</ul>') : '');
+      const filtersHtml = r.chainMap.filters.map(f => '<span class="chain-filter" data-type="' + esc(f.type) + '">' + esc(f.label) + '</span>').join('');
+      const treeHtml = r.chainMap.nodes.map(chainNodeHtml).join('');
+      newsPanelList.innerHTML =
+        '<div class="report-module"><div class="module-head"><span class="seq">1</span><span class="m-title">核心看点 · Key Takeaways</span><span class="m-toggle">▾</span></div>' +
+          '<div class="module-body">' + takeHtml + '</div></div>' +
+        '<div class="report-module"><div class="module-head"><span class="seq">2</span><span class="m-title">核心度评分 · Score Card</span><span class="m-toggle">▾</span></div>' +
+          '<div class="module-body"><div class="score-card"><div class="score-left"><div class="score-overall">' + r.scoreCard.overall.toFixed(2) + '<small>核心度</small></div><div class="score-dims">' + dimsHtml + '</div></div>' +
+          '<div class="score-right"><div class="sr-title">核心信息</div>' + coreHtml + '</div></div></div></div>' +
+        '<div class="report-module"><div class="module-head"><span class="seq">3</span><span class="m-title">链路节点分类图 · Chain Map</span><span class="m-toggle">▾</span></div>' +
+          '<div class="module-body"><div class="chain-filters">' + filtersHtml + '</div><div class="chain-tree">' + treeHtml + '</div></div></div>';
+    }
+
     function initNewsPanel() {
       newsPanel = document.getElementById('newsPanel');
       newsPanelCity = document.getElementById('newsPanelCity');
@@ -1464,7 +1671,25 @@
       newsPanelSub = document.getElementById('newsPanelSub');
       newsPanelFoot = document.getElementById('newsPanelFoot');
       newsFilter = document.getElementById('newsFilter');
-      buildNewsFilter();
+      // 事件委托：模块折叠 + 链路图筛选（随城市重渲染不会失效）
+      if (newsPanelList) {
+        newsPanelList.addEventListener('click', function (e) {
+          const mh = e.target.closest('.module-head');
+          if (mh) { mh.parentElement.classList.toggle('collapsed'); return; }
+          const cf = e.target.closest('.chain-filter');
+          if (cf) {
+            const wasActive = cf.classList.contains('active');
+            newsPanelList.querySelectorAll('.chain-filter').forEach(x => x.classList.remove('active'));
+            const type = wasActive ? 'all' : cf.dataset.type;
+            if (!wasActive) cf.classList.add('active');
+            newsPanelList.querySelectorAll('.chain-tree .chain-node').forEach(nd => {
+              const types = (nd.dataset.types || '').split(',').filter(Boolean);
+              const show = (type === 'all') || !types.length || types.indexOf(type) >= 0;
+              nd.style.display = show ? '' : 'none';
+            });
+          }
+        });
+      }
     }
 
     /* 构建维度筛选条：全部 + 10 个宏观维度；点击按维度过滤当前城市新闻 */
@@ -1485,11 +1710,13 @@
     }
 
     function selectNode(nodeId) {
-      const node = MAP_NODES_DATA.find(n => n.id === nodeId);
+      const node = findNode(nodeId);
       if (!node) return;
+      const isReal3D = !!MAP_NODES_DATA.find(function (n) { return n.id === nodeId; });
       const first = activeNodeId === null;
       activeNodeId = nodeId;
-      if (!first) {
+      // 仅对真实 3D 金融中心节点触发相机聚焦/光圈脉冲；港口专属节点只联动右侧面板，不改变 3D 状态
+      if (!first && isReal3D) {
         GLOBE.targetZ = MOTION.CAM_Z_FOCUS;     // 点击节点轻微推近聚焦
         GLOBE.selectPulse = { id: nodeId, t: 0 }; // 选中光圈脉冲
       }
@@ -1522,12 +1749,12 @@
       currentNewsNode = node;
       renderNewsHeader(node);
       updateFoot();
-      if (!animate) { renderNewsList(node); return; }
+      if (!animate) { renderReport(node); return; }
       const list = newsPanelList;
       list.classList.add('leaving');
       if (newsSwitchTimer) clearTimeout(newsSwitchTimer);
       newsSwitchTimer = setTimeout(() => {
-        renderNewsList(node);
+        renderReport(node);
         list.classList.remove('leaving');
         list.classList.add('entering');
         void list.offsetWidth; // 强制回流，确保过渡触发
@@ -1569,7 +1796,7 @@
     function renderNewsHeader(node) {
       if (!newsPanel) initNewsPanel();
       newsPanelCity.textContent = node.name;
-      if (newsPanelSub) newsPanelSub.textContent = '金融热点 · 按重要度排序';
+      if (newsPanelSub) newsPanelSub.textContent = '动态数据截至 ' + REPORT_DATE + ' / 复盘截至 ' + REVIEW_DATE;
       const liveCount = node.news.filter(n => n.tags.includes('live')).length;
       newsPanelMeta.innerHTML =
         '<span class="city-clock">' + node.name + '时间 ' + cityTime(CITY_TZ[node.id]) + '</span>' +
@@ -1643,17 +1870,76 @@
      * ========================================================= */
     // dx/dy：对中国沿海密集港口群施加细微经纬度偏移（度），避免气泡重叠形成视觉黑洞（引线/锚点式布局简化版）
     const PORT_THROUGHPUT = [
-      { name: '上海港',   cn: '上海',     en: 'Shanghai',   lat: 31.23, lng: 121.47, teu: 4920, rank: 1, dx: 0,    dy: 0    },
-      { name: '新加坡港', cn: '新加坡',   en: 'Singapore',  lat: 1.29,  lng: 103.85, teu: 3900, rank: 2, dx: 0,    dy: 0    },
-      { name: '宁波舟山港', cn: '宁波',   en: 'Ningbo',    lat: 29.87, lng: 121.55, teu: 3530, rank: 3, dx: 0,    dy: -1.7 },
-      { name: '深圳港',   cn: '深圳',     en: 'Shenzhen',   lat: 22.54, lng: 114.06, teu: 2990, rank: 4, dx: 0.2,  dy: -1.2 },
-      { name: '青岛港',   cn: '青岛',     en: 'Qingdao',    lat: 36.07, lng: 120.38, teu: 2870, rank: 5, dx: 0,    dy: 0    },
-      { name: '广州港',   cn: '广州',     en: 'Guangzhou',  lat: 23.13, lng: 113.26, teu: 2540, rank: 6, dx: 0,    dy: 1.3  },
-      { name: '釜山港',   cn: '釜山',     en: 'Busan',      lat: 35.10, lng: 129.04, teu: 2300, rank: 7, dx: 0,    dy: 0    },
-      { name: '天津港',   cn: '天津',     en: 'Tianjin',    lat: 39.08, lng: 117.20, teu: 2220, rank: 8, dx: 0,    dy: 0    },
-      { name: '中国香港', cn: '中国香港', en: 'Hong Kong', lat: 22.30, lng: 114.17, teu: 1430, rank: 9, dx: 0.5,  dy: -0.5 },
-      { name: '鹿特丹港', cn: '鹿特丹',   en: 'Rotterdam', lat: 51.95, lng: 4.14,   teu: 1340, rank: 10, dx: 0,    dy: 0    },
+      { name: '上海港',   cn: '上海',     en: 'Shanghai',   lat: 31.23, lng: 121.47, teu: 4920, rank: 1,  dx: 0,    dy: 0,    nodeId: 'shanghai'  },
+      { name: '新加坡港', cn: '新加坡',   en: 'Singapore',  lat: 1.29,  lng: 103.85, teu: 3900, rank: 2,  dx: 0,    dy: 0,    nodeId: 'singapore' },
+      { name: '宁波舟山港', cn: '宁波',   en: 'Ningbo',    lat: 29.87, lng: 121.55, teu: 3530, rank: 3,  dx: 0,    dy: -1.7, nodeId: 'ningbo'    },
+      { name: '深圳港',   cn: '深圳',     en: 'Shenzhen',   lat: 22.54, lng: 114.06, teu: 2990, rank: 4,  dx: 0.2,  dy: -1.2, nodeId: 'shenzhen'  },
+      { name: '青岛港',   cn: '青岛',     en: 'Qingdao',    lat: 36.07, lng: 120.38, teu: 2870, rank: 5,  dx: 0,    dy: 0,    nodeId: 'qingdao'   },
+      { name: '广州港',   cn: '广州',     en: 'Guangzhou',  lat: 23.13, lng: 113.26, teu: 2540, rank: 6,  dx: 0,    dy: 1.3,  nodeId: 'guangzhou' },
+      { name: '釜山港',   cn: '釜山',     en: 'Busan',      lat: 35.10, lng: 129.04, teu: 2300, rank: 7,  dx: 0,    dy: 0,    nodeId: 'busan'     },
+      { name: '天津港',   cn: '天津',     en: 'Tianjin',    lat: 39.08, lng: 117.20, teu: 2220, rank: 8,  dx: 0,    dy: 0,    nodeId: 'tianjin'   },
+      { name: '中国香港', cn: '中国香港', en: 'Hong Kong', lat: 22.30, lng: 114.17, teu: 1430, rank: 9,  dx: 0.5,  dy: -0.5, nodeId: 'hongkong'  },
+      { name: '鹿特丹港', cn: '鹿特丹',   en: 'Rotterdam', lat: 51.95, lng: 4.14,   teu: 1340, rank: 10, dx: 0,    dy: 0,    nodeId: 'rotterdam' },
     ];
+    // 港口专属节点：宁波/青岛/釜山/天津/鹿特丹 在 MAP_NODES_DATA 中没有对应金融中心节点，
+    // 这里为它们建立「港口节点」，使其点击能联动右侧研报看板（带各自新闻）。仅用于 2D 联动，不影响 3D 地球节点集合。
+    const PORT_EXTRA_NODES = {
+      ningbo: {
+        id: 'ningbo', name: '宁波', region: '华东', lat: 29.87, lng: 121.55, type: 'trade', color: '#36e0a0',
+        rank: 3, score: 0.74,
+        desc: '全球第一大集装箱港群核心，汽车/机电/化工出口重镇，海铁联运枢纽。',
+        news: [
+          { tags: ['hot'], title: '宁波舟山港集装箱吞吐量稳居全球首位，前三季度同比增 6.2%', source: '港口协会', time: '11:20', dimension: '供应链物流' },
+          { tags: ['update'], title: '梅山港区自动化码头新增 3 个泊位，单机作业效率提升 18%', source: '浙江日报', time: '10:40', dimension: '供应链物流' },
+          { tags: ['policy'], title: '浙江自贸区宁波片区大宗商品交易试点扩容', source: '商务部', time: '09:30', dimension: '自贸区' },
+          { tags: ['trade'], title: '中欧班列(宁波) 开行量创新高，海铁联运占比提升', source: '中国交通报', time: '08:50', dimension: '贸易' }
+        ]
+      },
+      qingdao: {
+        id: 'qingdao', name: '青岛', region: '华东', lat: 36.07, lng: 120.38, type: 'trade', color: '#36e0a0',
+        rank: 5, score: 0.70,
+        desc: '环渤海核心枢纽港，家电/轮胎/大宗商品中转，日韩航线密集。',
+        news: [
+          { tags: ['hot'], title: '青岛港前湾港区自动化升级完成，作业效率提升 18%', source: '齐鲁晚报', time: '11:05', dimension: '供应链物流' },
+          { tags: ['update'], title: '山东港口一体化提速，青岛港中转业务增长', source: '大众日报', time: '10:15', dimension: '供应链物流' },
+          { tags: ['energy'], title: '董家口港区液化天然气接卸量创新高', source: '中国能源报', time: '09:20', dimension: '能源大宗' }
+        ]
+      },
+      busan: {
+        id: 'busan', name: '釜山', region: '东亚', lat: 35.10, lng: 129.04, type: 'trade', color: '#36e0a0',
+        rank: 7, score: 0.72,
+        desc: '东北亚中转枢纽，半导体/汽车出口要冲，衔接日美欧主干航线。',
+        news: [
+          { tags: ['hot'], title: '釜山港巩固东北亚中转枢纽地位，吞吐稳健回升', source: 'Korea Herald', time: '13:30', dimension: '供应链物流' },
+          { tags: ['update'], title: '釜山新港智能集装箱码头投入运营', source: 'Busan Daily', time: '12:10', dimension: '供应链物流' },
+          { tags: ['trade'], title: '韩美航线运价指数环比上行', source: '韩国海事', time: '11:00', dimension: '贸易' }
+        ]
+      },
+      tianjin: {
+        id: 'tianjin', name: '天津', region: '华北', lat: 39.08, lng: 117.20, type: 'trade', color: '#36e0a0',
+        rank: 8, score: 0.69,
+        desc: '京津冀出海口，汽车/装备/化工枢纽，海铁联运服务北方腹地。',
+        news: [
+          { tags: ['hot'], title: '天津港太平洋国际码头吞吐量同比增 7.5%', source: '天津日报', time: '10:55', dimension: '供应链物流' },
+          { tags: ['policy'], title: '天津自贸区航运便利化新政落地', source: '天津市商务局', time: '09:45', dimension: '自贸区' },
+          { tags: ['update'], title: '京津冀协同港群联动，海铁联运班列加密', source: '中国交通报', time: '08:40', dimension: '供应链物流' }
+        ]
+      },
+      rotterdam: {
+        id: 'rotterdam', name: '鹿特丹', region: '欧洲', lat: 51.95, lng: 4.14, type: 'trade', color: '#36e0a0',
+        rank: 10, score: 0.73,
+        desc: '欧洲门户港，亚欧主干航线终点，能源与绿色燃料加注枢纽。',
+        news: [
+          { tags: ['hot'], title: '鹿特丹港欧洲门户地位稳固，吞吐领跑欧陆', source: 'Port of Rotterdam', time: '15:20', dimension: '供应链物流' },
+          { tags: ['energy'], title: '鹿特丹氢能枢纽建设提速，绿色甲醇加注试点', source: 'Reuters', time: '14:05', dimension: '能源大宗' },
+          { tags: ['trade'], title: '欧线运价企稳，亚欧主干航线需求回暖', source: "Lloyd's List", time: '13:10', dimension: '贸易' }
+        ]
+      }
+    };
+    // 节点解析：先查 3D 金融中心节点，再查 2D 港口专属节点（保证 2D 全部港口可联动）
+    function findNode(id) {
+      return MAP_NODES_DATA.find(function (n) { return n.id === id; }) || (PORT_EXTRA_NODES[id] || null);
+    }
     // ⚠️ 以上为近似 2023 年公开统计值（单位：万 TEU），演示用途，待数据组以官方口径核实替换
     const TEU_MIN = PORT_THROUGHPUT.reduce((m, p) => Math.min(m, p.teu), Infinity);
     const TEU_MAX = PORT_THROUGHPUT.reduce((m, p) => Math.max(m, p.teu), -Infinity);
@@ -1678,6 +1964,15 @@
       };
     }
     let _2dAssets = null;
+    let selected2DId = null; // 2D 当前选中港口的 nodeId（与 3D 共享 activeNodeId，但用于绘制 2D 金色光圈）
+    // 同步 2D 选中光圈到指定节点（找不到对应港口则清空光圈）；按 series 索引局部更新，不重绘其它层
+    function update2DSelection(nodeId) {
+      selected2DId = nodeId;
+      if (!GLOBE.chart2d) return;
+      const port = PORT_THROUGHPUT.find(function (p) { return p.nodeId === nodeId; });
+      const data = port ? [{ name: port.cn, value: [port.lng + (port.dx || 0), port.lat + (port.dy || 0)] }] : [];
+      GLOBE.chart2d.setOption({ series: [{}, {}, {}, {}, { data: data }] });
+    }
     function load2DAssets() {
       if (window.echarts && window.WORLD_GEO_JSON) return Promise.resolve();
       if (_2dAssets) return _2dAssets;
@@ -1687,7 +1982,7 @@
     function build2DOption() {
       // 港口坐标防重叠：对密集的中国沿海港口群施加细微经纬度偏移（引线/锚点式布局的简化版）
       const ports = PORT_THROUGHPUT.map(p => ({
-        name: p.name, rank: p.rank,
+        name: p.name, rank: p.rank, nodeId: p.nodeId,
         value: [p.lng + (p.dx || 0), p.lat + (p.dy || 0), p.teu],
       }));
       // 将跨越 180° 经线的航线在边界处拆段，避免 2D 平面直线穿越大陆（穿模）
@@ -1779,7 +2074,21 @@
             blur: { lineStyle: { opacity: 0.3 } }, blurScope: 'series',
             data: routeData,
             zlevel: 2,
-          },
+        },
+        {
+          // 选中节点金色脉冲光圈：对标 3D 的 selectPulse，标记当前 2D 选中港口（silent 不拦截点击，透传给底层气泡）
+          name: '选中节点', type: 'effectScatter', coordinateSystem: 'geo', geoIndex: 0,
+          data: selected2DId ? (function () {
+            const p = PORT_THROUGHPUT.find(function (x) { return x.nodeId === selected2DId; });
+            return p ? [{ name: p.cn, value: [p.lng + (p.dx || 0), p.lat + (p.dy || 0)] }] : [];
+          })() : [],
+          silent: true,
+          symbolSize: 56,
+          showEffectOn: 'render', rippleEffect: { brushType: 'stroke', scale: 3.4, period: 3 },
+          itemStyle: { color: 'rgba(255,209,102,0)', borderColor: '#ffd166', borderWidth: 3, shadowBlur: 22, shadowColor: 'rgba(255,209,102,0.95)' },
+          label: { show: true, formatter: function (pp) { return pp.data.name; }, color: '#ffd166', fontSize: 13, fontWeight: 'bold', position: 'top', distance: 10, textShadowColor: 'rgba(0,0,0,0.85)', textShadowBlur: 4 },
+          zlevel: 6
+        },
         ],
       };
     }
@@ -1798,6 +2107,13 @@
           GLOBE.chart2d.on('mouseout', debounce(function () {
             GLOBE.chart2d.dispatchAction({ type: 'downplay', seriesIndex: linesIdx });
           }, 160));
+          // 节点点击联动：点击港口气泡 → 切换右侧研报看板（与 3D 拾取共用同一 selectNode 链路）
+          GLOBE.chart2d.on('click', function (p) {
+            if (!p || p.seriesType !== 'effectScatter' || !p.data || !p.data.nodeId) return;
+            if (p.data.nodeId === activeNodeId) return; // 同一节点不重复触发
+            selectNode(p.data.nodeId);
+            update2DSelection(p.data.nodeId);
+          });
         } else {
           GLOBE.chart2d.resize();
         }
@@ -1839,7 +2155,7 @@
         if (fallback) fallback.style.display = 'none';
         map2d.hidden = false;
         legend.hidden = false;
-        init2D().then(function () { if (GLOBE.chart2d) GLOBE.chart2d.resize(); });
+        init2D().then(function () { if (GLOBE.chart2d) { GLOBE.chart2d.resize(); update2DSelection(activeNodeId); } });
       } else {
         map2d.hidden = true;
         legend.hidden = true;

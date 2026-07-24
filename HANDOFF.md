@@ -149,7 +149,39 @@
 
 - **QA**：① 三处 path 改动已 Read 逐行确认落盘，所有用户给的 13 个关键航点无遗漏；② 内联脚本语法校验待命令工具恢复后补跑；③ **2D 实际渲染与放大穿模目检需本机浏览器实测**（沙箱无 GUI/DOM）。
 
-- **诚实边界**：命令执行工具本轮仍报参数错误，自动校验脚本与 git 推送未执行；代码改动已 Read 确认落盘，**待工具恢复后补跑 node 校验并 commit/push V4.6（含 V4.5 一起）**。吞吐量仍为近似 2023 演示值。
+- **诚实边界**：V4.5+V4.6 已 commit/push（`0854d23..988bcb2 main → main`，命令工具恢复后补跑节点校验并一次性推送）。吞吐量仍为近似 2023 演示值。
+
+### 4.2.7 右侧新闻面板 → 产业/宏观深度研报看板（V4.7 · 2026-07-24）
+
+- **任务单来源**：用户提供了一份"执行说明书"SOP，要求把右侧面板从"新闻列表"全面升级为"产业/宏观深度研报看板"，含三大模块（核心看点 / 核心度评分卡 / 链路节点分类图）、CSS 原子样式、Mock 数据结构、点击城市联动刷新、模块折叠、链路筛选。
+
+- **关键事实澄清（动手前核查）**：右侧面板原本是 `selectNode(nodeId) → updateNews → renderNewsHeader/renderNewsList` 驱动的**新闻系统**（数据来自 `MAP_NODES_DATA` 的 `.news`，含 10 维度筛选、城市时钟、直播脉冲）。SOP 描述的 `reportData`/`renderReport` **原先不存在**。本版按 SOP 将新闻系统**整块替换为研报看板**，**地球点击城市 → 研报联动保留**（`selectNode` 仍触发 `renderReport`）。
+
+- **HTML/CSS**：① `#newsPanelList` 升级为 `news-panel-list report-container`（滚动收进内部，外层 `.news-panel` 改 `overflow:hidden`，垂直滚动条仅出现在看板内，不影响左地球/顶栏）；② 移除旧 `.news-filter` 维度筛选条（CSS `display:none` + `initNewsPanel` 不再调用 `buildNewsFilter`）；③ 新增全套原子样式：`.report-module` 卡片、`.seq`（`[ N ]` 青色半透明方块）、`.takeaway` 自定义圆点 + `.important` 高亮黄 + `.t-desc` 3 行截断、`.highlight-yellow`、`.score-card` 两栏（左大号 core 度 + 四维度渐变进度条 `sd-fill`；右 `核心信息` 列表 `.co` 黄色粗体公司 + `.geo` 海外胶囊）、`.chain-filters`/`.chain-filter` 胶囊（刚性/半刚性/非刚性/产业约束/海外场景）、`.chain-tree` 树状连线（`border-left` + `•` 伪元素锚点）、`.module-body` `max-height` 折叠过渡。
+
+- **数据 Mock**：`reportData` 按城市 `id` 挂接（与 `MAP_NODES_DATA` 一致），给 `beijing`/`shanghai`/`newyork`/`london` 写了**详细研报**（takeAways 3 条、scoreCard 4 维度、coreInfo 国内/海外公司、chainMap 3 节点含 subs）；其余 17 个城市由 `reportFallback(node)` 基于各自 `desc`+头条生成，保证**每个城市点开都不空**。副标题改为动态宏观时间戳：`动态数据截至 {今天} / 复盘截至 {昨天}`。
+
+- **交互逻辑**：① 模块标题整行点击热区 → 切换 `.collapsed`（max-height 过渡折叠/展开）；② 链路图胶囊点击 → 实时按 `type` 过滤 `.chain-node`（再点同一胶囊取消筛选显示全部）；③ 城市切换沿用原有 fade-out-up → fade-in-down 过渡（`updateNews` 内 `leaving/entering` 类，已挂到 `.news-panel-list`，未破坏）；④ 事件用**委托**绑在 `#newsPanelList` 上，随城市重渲染不失效。
+
+- **QA**：① 内联脚本语法校验与 git 推送**待命令工具恢复后补跑**（本轮 Bash/PowerShell 报参数错误，无法执行；已用 Read 逐行核对数据块与渲染函数括号/引号平衡、模板拼接闭合）；② 所有 SOP 标记的落地断言已 grep 确认（reportData 4 城、renderReport 定义、`updateNews` 改调、buildNewsFilter 调用移除、事件委托、macro 时间戳、report-container 类）。
+
+- **诚实边界**：① 研报内容（takeAways/scoreCard/chainMap）为**演示 Mock 数据，非真实研报**；② 替换后原"新闻列表 + 维度筛选"功能被取代（地球联动保留）；③ **2D/3D 实际渲染与目检需本机浏览器实测**（沙箱无 GUI/DOM）。④ V4.7 的语法校验与 git 推送已在 V4.7+V4.8 同次提交中补跑完成（内联脚本 `new Function` 解析全部通过）。
+
+### 4.2.8 2D 港口气泡点击联动右侧研报看板（V4.8 · 2026-07-24）
+
+- **需求**：用户要求 2D 地图上**全部 10 个港口气泡节点**在点击时，右侧研报看板立即切换并显示该港口对应内容，且与 3D 模式的联动逻辑一致（含选中高亮、内容动态加载、切换动画）。
+
+- **复用 3D 联动链路（一致性核心）**：2D 气泡点击直接调用与 3D 拾取**同一套** `selectNode(nodeId) → updateNews(node, animate) → renderReport(node)`。因此右侧面板的**切换动画（leaving/entering 淡出淡入）、城市时钟、研报三模块**在 2D 与 3D 下表现完全一致，无需为 2D 单独实现。
+
+- **节点解析器 `findNode`**：原 `selectNode` 仅查 `MAP_NODES_DATA`；V4.8 改为先查 `MAP_NODES_DATA`，再查新表 `PORT_EXTRA_NODES`（港口专属节点）。`MAP_NODES_DATA` 只含 21 个金融中心，10 个港口里**仅 5 个（上海/新加坡/深圳/广州/香港）有对应金融中心节点**；其余 5 个（宁波/青岛/釜山/天津/鹿特丹）在 `PORT_EXTRA_NODES` 中建立了**港口专属节点**，各带 `news[]` 头条与 `desc`，使点击能渲染出该港口自身的研报（走 `reportFallback`）。
+
+- **3D 副作用隔离（不破坏 3D）**：`selectNode` 仅对 `MAP_NODES_DATA` 中存在的**真实 3D 节点**触发相机聚焦 `GLOBE.targetZ` 与选中光圈 `GLOBE.selectPulse`；港口专属节点只联动右侧面板，不改变 3D 状态。3D 渲染循环本就按 `m.id === selectPulse.id` 匹配真实标记，合成 id 不匹配即无光圈、无报错——**3D 地球节点集合与行为完全不变**。
+
+- **2D 选中高亮（对标 3D selectPulse）**：`build2DOption` 新增第 5 个 series「选中节点」（金色脉冲 `effectScatter`，`silent:true` 透传点击给底层气泡），由 `selected2DId` 驱动；`update2DSelection(nodeId)` 按 series 索引**局部** `setOption({series:[{},{},{},{},{data}]})` 更新光圈位置（不重绘航线/光晕层，避免涟漪重启）。切到 2D 时 `setView` 调 `update2DSelection(activeNodeId)` 同步高亮当前选中港口。
+
+- **点击绑定**：`init2D` 内 `chart.on('click')` 命中 `effectScatter` 且 `p.data.nodeId` 存在时触发；同一节点重复点击直接 return（防抖冗余）。10 个港口 `PORT_THROUGHPUT` 均已加 `nodeId` 字段。
+
+- **诚实边界**：① 研报/新闻为演示数据；② `renderNewsHeader` 的「GFCI 全球金融中心排名 #N」对 5 个港口专属节点显示的是**吞吐量排名**（非 GFCI 金融中心排名），因它们本是港口不是金融中心，属演示标注，介意可改表头文案；③ 2D 实际渲染与点击联动需本机浏览器实测（沙箱无 GUI/DOM）。
 
 ### 4.3 `dashboard/` 已实现业务骨架（演示数据驱动）
 
@@ -173,7 +205,9 @@
 | 交互参数 | `const MOTION = { DRAG_THRESHOLD:10, DRAG_THRESHOLD_SOFT:22, CAM_Z_FOCUS:3.0, SELECT_PULSE_MS:700, VEL_EPS:0.00015, ... }` |
 | 点击拾取 | `pickNode(e)` —— 在正面命中里选「节点中心到拾取射线垂直距离最小」的节点（纠正邻近金融中心误选） |
 | 事件绑定 | `bindGlobeEvents()`（pointerdown/move/up，含 `moved` 拖拽判定） |
-| 新闻主逻辑 | `selectNode(id)` → `updateNews(node, animate)` → `renderNewsHeader` / `renderNewsList` |
+| 新闻主逻辑 | `selectNode(id)` → `updateNews(node, animate)` → `renderNewsHeader` / `renderReport` |
+| 2D 节点联动 | `selectNode` 复用；`findNode` 查 `MAP_NODES_DATA`+`PORT_EXTRA_NODES`；`update2DSelection` 驱动第 5 个 series「选中节点」金色光圈 |
+| 港口气泡数据 | `PORT_THROUGHPUT`（含 `nodeId`）；港口专属节点 `PORT_EXTRA_NODES`（宁波/青岛/釜山/天津/鹿特丹） |
 | 重要度评分 | `newsImportance(item, node)`、`const TAG_WEIGHT = {...}` |
 | 相对时间 | `relTime('HH:MM')` |
 | 实时时钟 | `cityTime(tz)`（IANA 时区 `CITY_TZ`）、`tickClock()`、`tickHotspot()`（15s） |
