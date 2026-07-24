@@ -205,6 +205,23 @@
 
 - **诚实边界**：① 板块边界与省级 GeoJSON 以 datav.aliyun.com 公开数据为准，与高德/民政部口径若有差异以官方为准；② 重叠省按唯一归属解决（**浙江→华东北部、山东→华东南部**）；③ 城市研报为演示 Mock；④ 双击下钻 / 抽屉弹窗的真实交互需本机浏览器**联网**实测（沙箱无 GUI/DOM/外网）；⑤ `china-drilldown.html`（V4.9 独立单文件版本）作为离线备选保留，功能已被本节覆盖。
 
+### 4.2.10 3D 视图双击中国区域下钻（V4.10 · 2026-07-24）
+
+- **需求**：用户在 **3D 地球视图上双击中国区域**（非城市节点），自动切换到 2D 中国板块图（`setView('china')`），与 2D 双击 China 行为一致。
+
+- **实现**：在 `onPointerUp` 中新增双击检测（`performance.now() - lastClick3D < 350ms`）。双击发生时间步：
+  1. 射线投射 `GLOBE.sphere`（原未存储，现存入 `GLOBE`）获取地球表面命中点；
+  2. `globeGroup.worldToLocal` 逆旋转得到本地坐标；
+  3. `vector3ToLatLng` 逆算得经纬度（`phi=acos(y/R), lat=90-phi*180/PI, theta=atan2(z,-x), lng=theta*180/PI-180`）；
+  4. `isInsideChina(lat,lng)` 射线投射法判定（28 点简化中国多边形，覆盖大陆 + 海南，不含台湾）；
+  5. 命中 → `setView('china')` 并 return（跳过单次 `pickNode`）。
+
+- **防冲突**：双击第二击命中中国区域时 `pickNode` 不执行（单次已选节点，不重复联动）；拖拽旋转中快速双击不触发（`isClick` 依赖 `movedDist ≤ DRAG_THRESHOLD`）。
+
+- **代码位置**（L~1336–1415）：`vector3ToLatLng` / `CHINA_POLY` / `isInsideChina`（L~1339–1370），`onPointerUp` 双击逻辑（L~1394–1415），`GLOBE` 新增 `sphere` 和 `lastClick3D` 字段（L1275）。
+
+- **诚实边界**：① 中国多边形为**简化版（28 锚点）**，边界省（新疆北部、内蒙古北部、黑龙江东部）可能有 ±50km 偏差，精度为演示级，非精确国界；② 3D 射线命中依赖 `sphere` 网格面精度（64 段），双击精度足够但非像素级；③ 双击交互需本机浏览器实测（沙箱无 GUI/DOM/WebGL）；④ 该交互与 3D 旋转拖拽、单击选节点完全解耦，不破坏现有 3D 行为。
+
 ### 4.3 `dashboard/` 已实现业务骨架（演示数据驱动）
 
 > 注：本模块代码已实现，但**构建运行未在沙箱验证**（依赖未安装、需联网 `npm i`）。接手方需 `npm i && npm run dev` 实测。
@@ -237,6 +254,7 @@
 | 呼吸光环 / 新闻样式 / 骨架屏 | `.globe-wrap::after` + `@keyframes ringBreath`；`.news-item.top/.top1`；`.skeleton-*` |
 | 中国下钻 (V4.9) | `CHINA_BOARDS`（10 板块）/ `CHINA_CITY`（30 城市）/ `CHINA_TAKE`+`CHINA_SCORE`（Mock 研报）/ `CHINA_CITY_NODES`+`chinaReportData`（findNode/getReport 用）/ `CHINA_PROV_ADCODE`（31 省 adcode） |
 | 中国下钻函数 | `initChinaMap()` → `getChinaGeo()`（拉中国省级 GeoJSON）；`showProvDrawer(provName)` → `hideProvDrawer()`（省级抽屉）；`bindWorldDblclick()`（世界双击中国区）；`renderChinaOffline()`（离线降级） |
+| 3D 下钻 (V4.10) | `vector3ToLatLng(v)` / `CHINA_POLY` / `isInsideChina(lat,lng)`（L~1339–1370）；`onPointerUp` 双击逻辑（L~1394–1415）；`GLOBE.sphere`、`GLOBE.lastClick3D`（L1275） |
 | 抽屉样式 | `.prov-drawer`（底栏 56% 高度，淡入 transform/opacity 过渡）、`.prov-city-chip.in-data`（命中研报节点的青色高亮） |
 
 ---

@@ -1272,7 +1272,7 @@
         starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
         scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x2a4a66, size: 0.06, transparent: true, opacity: 0.7 })));
 
-        Object.assign(GLOBE, { scene, camera, renderer, globeGroup, wrap, markers, dotMeshes, hitMeshes, raycaster: new THREE.Raycaster(), pointer: new THREE.Vector2() });
+        Object.assign(GLOBE, { scene, camera, renderer, globeGroup, wrap, sphere, markers, dotMeshes, hitMeshes, raycaster: new THREE.Raycaster(), pointer: new THREE.Vector2(), lastClick3D: 0 });
         GLOBE.ready = true;
 
         // 交互层初始化：缩放目标、动效偏好、入场动画
@@ -1335,6 +1335,33 @@
         );
       };
 
+      // 向量→经纬度（逆 latLngToVector3，输入为 globeGroup 本地坐标）
+      const vector3ToLatLng = (v) => {
+        const phi = Math.acos(Math.max(-1, Math.min(1, v.y / GLOBE.R)));
+        const lat = 90 - phi * 180 / Math.PI;
+        const theta = Math.atan2(v.z, -v.x);
+        let lng = theta * 180 / Math.PI - 180;
+        if (lng < -180) lng += 360;
+        if (lng > 180) lng -= 360;
+        return { lat, lng };
+      };
+      // 简化中国多边形（约20个锚点，覆盖大陆+海南，不含台湾）
+      const CHINA_POLY = [
+        [53.5,122],[53.5,135],[48,135],[43,131],[42,124],[40,122],[38,119],
+        [35,120],[30,122],[27,120],[23,117],[20,110],[18,108],[22,108],
+        [25,105],[28,98],[30,96],[28,90],[29,84],[35,78],[38,76],[40,75],
+        [45,82],[47,86],[49,90],[50,98],[49,110],[53.5,120]
+      ];
+      const isInsideChina = (lat, lng) => {
+        let inside = false;
+        for (let i = 0, j = CHINA_POLY.length - 1; i < CHINA_POLY.length; j = i++) {
+          const xi = CHINA_POLY[i][0], yi = CHINA_POLY[i][1];
+          const xj = CHINA_POLY[j][0], yj = CHINA_POLY[j][1];
+          if (((yi > lng) !== (yj > lng)) && (lat < (xj - xi) * (lng - yi) / (yj - yi) + xi)) inside = !inside;
+        }
+        return inside;
+      };
+
       const onPointerDown = (e) => {
         pauseAutoRotate();
         GLOBE.isDragging = true;
@@ -1367,8 +1394,29 @@
       const onPointerUp = (e) => {
         const p = getPointer(e);
         const movedDist = Math.hypot(p.x - downX, p.y - downY);
-        // 判定为“点击”而非“拖拽旋转”：位移很小，或虽略有移动但光标仍落在某节点上（容忍真人点击抖动）
+        // 判定为"点击"而非"拖拽旋转"：位移很小，或虽略有移动但光标仍落在某节点上（容忍真人点击抖动）
         const isClick = GLOBE.isDragging && (movedDist <= MOTION.DRAG_THRESHOLD || (movedDist <= MOTION.DRAG_THRESHOLD_SOFT && nodeUnderPointer(e)));
+
+        // ── 3D 双击中国区域 → 下钻中国板块图 ──
+        const now = performance.now();
+        const isDbl = isClick && (now - GLOBE.lastClick3D < 350);
+        GLOBE.lastClick3D = (isClick && !isDbl) ? now : 0;
+        if (isDbl) {
+          GLOBE.pointer.copy(toNDC(p));
+          GLOBE.raycaster.setFromCamera(GLOBE.pointer, GLOBE.camera);
+          const sphereHits = GLOBE.raycaster.intersectObjects([GLOBE.sphere], false);
+          if (sphereHits.length) {
+            const local = GLOBE.globeGroup.worldToLocal(sphereHits[0].point.clone());
+            const ll = vector3ToLatLng(local);
+            if (isInsideChina(ll.lat, ll.lng)) {
+              GLOBE.isDragging = false;
+              canvas.style.cursor = 'grab';
+              setView('china');
+              return;
+            }
+          }
+        }
+
         if (isClick) pickNode(e);
         GLOBE.isDragging = false;
         canvas.style.cursor = GLOBE.hoverId ? 'pointer' : 'grab';
