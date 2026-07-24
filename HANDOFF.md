@@ -9,7 +9,7 @@
 
 - 这是「大聪明金融」**数据可视化演示项目**，由根 `index.html` 导航卡片串联 **3 个入口**。
 - **已打磨成熟、可直接交付**：`landing/index.html`（3D 地球 + 金融热点新闻面板，单文件原生实现）。
-- **独立但较弱**：`landing/world-map.html`（2D ECharts 世界地图，未参与本轮打磨）。
+- **已与 3D 页统一维度体系**：`landing/world-map.html`（2D ECharts 世界地图，V3.0 维度扩充已完成，81 条带维度新闻）。
 - **已实现业务骨架**：`dashboard/`（Vue3+Vite+TS 量化看板，含 9 个组件 + Pinia store + 演示数据；构建运行未在沙箱验证）。
 - **所有数据均为演示数据，非真实接口**（沙箱环境无法联网调用外部 API）。
 
@@ -32,7 +32,7 @@
 ├── HANDOFF.md                 # 本文档
 ├── landing/                   # ★ 核心目录
 │   ├── index.html             # 主交付物：3D 地球 + 金融热点面板（单文件 ~80KB）
-│   ├── world-map.html         # 2D ECharts 世界地图（独立实现，16 城节点，未打磨）
+│   ├── world-map.html         # 2D ECharts 世界地图（与 3D 页统一维度体系，V3.0，81 条带维度新闻）
 │   ├── vendor/
 │   │   └── three.min.js       # Three.js r128 本地副本（非 CDN，必须同目录可访问）
 │   ├── _test.js / _test2.js / _test3.js / _verify.js  # 早期调试脚本（已入库，建议清理）
@@ -120,10 +120,10 @@
 
 1. **新闻是演示数据，非真实 API**。沙箱无法联网。接真实源时：把 `tickHotspot` 内逻辑换成 `fetch` + 错误降级（逻辑骨架已留好），并保留「演示数据」标识直到数据确为真实——**切勿把模拟刷新谎称为实时接口**。
 2. **点击阈值踩坑史（重要）**：原 `DRAG_THRESHOLD=5` 过小，真人点击的 5–20px 鼠标抖动会被 `onPointerUp` 判为「拖拽旋转」而抑制 `pickNode`，导致新闻永不刷新。已修为 `10` + 软阈值 `22`（松开处仍有节点则仍算点击）。**改动此处务必真机点击回归测试**（无头 Chrome + swiftshader 见下）。
-3. **无头测试环境**：puppeteer 启动需 `--enable-unsafe-swiftshader --use-gl=angle --use-angle=swiftshader`；`NODE_PATH` 在 Windows 下用**反斜杠**加载 `puppeteer-core`；Chrome 在 `~/.cache/puppeteer/chrome/win64-*/chrome.exe`。
+3. **无头测试环境**：puppeteer 启动用 `--use-gl=swiftshader`（实测 `--use-gl=angle --use-angle=swiftshader` 会导致第二页 `waitForFunction` 超时）；`NODE_PATH` 在 Windows 下用**反斜杠**加载 `puppeteer-core`；Chrome 在 `~/.cache/puppeteer/chrome/win64-*/chrome.exe`。
 4. **本地预览**：`cd landing && python -m http.server 8080` → `http://127.0.0.1:8080/index.html`。`vendor/three.min.js` 必须同目录可访问（页面引用本地路径，非 CDN）。
 5. **P0 视觉规则（项目约定）**：禁 emoji 图标（用 SVG/CSS 圆点）、禁紫粉渐变、禁 AI 模板味文案。Top 高亮用橙/红实色。
-6. **`world-map.html` 与 `landing/index.html` 是两套独立实现**（2D vs 3D），数据/逻辑不共享，改一个不影响另一个。
+6. **`world-map.html` 与 `landing/index.html` 同为 V3.0 维度体系**（维度色彩 / 双标签 / 11-chip 筛选一致），但新闻数据仍各自内联、逻辑不共享，改一个不影响另一个的 V3.0 结构。
 7. **`landing/` 下的 `_test*.js`、`_verify.js` 是早期调试残留**，已入库（git status 干净），**建议清理**以免干扰接手方。
 8. **未做移动端布局**：当前 `html,body{overflow:hidden}` 全屏桌面向，无响应式断点。
 
